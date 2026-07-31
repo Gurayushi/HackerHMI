@@ -1,0 +1,8 @@
+# PlatformIO
+.pio
+.vscode
+.DS_Store
+*.bin
+*.elf
+*.hex
+*.uf2
