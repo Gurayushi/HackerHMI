@@ -5,6 +5,7 @@
 // Custom Headers (UI & Giao tiếp)
 #include "dwin_ui.h"
 #include "terminal.h"
+#include "hid_device.h"
 
 // Vũ khí Hacker
 #include "badusb.h"
@@ -77,6 +78,20 @@ int main() {
                 uint8_t payload[] = {0x01, 0x02, 0x03}; // Mã giả lập
                 cc1101_transmit_signal(payload, 3);
             }
+            // --- CÁC NÚT BẤM ĐỔI HỆ ĐIỀU HÀNH CHO TOUCHPAD ---
+            else if (strncmp(hmi_input, "CMD_OS_WIN", 10) == 0) {
+                hid_set_os(0); dwin_write_text(0x0098, "[+] Switched to Windows Mode\n");
+            }
+            else if (strncmp(hmi_input, "CMD_OS_MAC", 10) == 0) {
+                hid_set_os(1); dwin_write_text(0x0098, "[+] Switched to MacOS Mode\n");
+            }
+            else if (strncmp(hmi_input, "CMD_OS_LINUX", 12) == 0) {
+                hid_set_os(2); dwin_write_text(0x0098, "[+] Switched to Linux Mode\n");
+            }
+            else if (strncmp(hmi_input, "CMD_OS_ANDROID", 14) == 0) {
+                hid_set_os(3); dwin_write_text(0x0098, "[+] Switched to Android Mode\n");
+            }
+            // -------------------------------------------------
             else {
                 // Các chuỗi gõ phím thông thường (IP, Username) sẽ gửi sang C6 để lưu
                 push_config_to_c6(hmi_input);

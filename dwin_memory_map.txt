@@ -22,6 +22,10 @@ Khi thiết kế nút bấm trên màn hình (Ví dụ nút Bắn Hồng Ngoại
 - `CMD_SAVE_CF`: Gán cho nút bấm "Lưu Cấu Hình".
 - `CMD_MOUSE_LCLICK`: Nhấn chuột trái (Touchpad).
 - `CMD_MOUSE_RCLICK`: Nhấn chuột phải (Touchpad).
+- `CMD_OS_WIN`: Chuyển sang chế độ Windows (Gửi phím tắt Win).
+- `CMD_OS_MAC`: Chuyển sang chế độ MacOS (Gửi phím tắt Mac).
+- `CMD_OS_LINUX`: Chuyển sang chế độ Linux.
+- `CMD_OS_ANDROID`: Chuyển sang chế độ Android.
 
 ## 4. Chế độ Bàn phím & Chuột ảo (USB HID)
 - `0x0200`: Ô nhớ Bàn phím ảo (Gõ chữ trên HMI, RP2350 nhận và giả lập thành phím USB).
