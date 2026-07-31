@@ -7,55 +7,32 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
-
-#define WIFI_SSID      "YOUR_WIFI_SSID"
-#define WIFI_PASS      "YOUR_WIFI_PASSWORD"
-
-// Danh bạ IP tĩnh (LAN và Tailscale)
-#define IP_LAN_PC      "192.168.1.50"
-#define IP_TS_PC       "100.x.y.z"
+#include "nvs.h"
 
 static const char *TAG = "HACKER_NET";
 
-static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
-    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        esp_wifi_connect();
-    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        ESP_LOGW(TAG, "Mất kết nối Wi-Fi, đang thử lại...");
-        esp_wifi_connect();
-    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-        ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-        ESP_LOGI(TAG, "Đã kết nối Wi-Fi. IP của C6 là: " IPSTR, IP2STR(&event->ip_info.ip));
-    }
+// Các biến cấu hình động (Sẽ được nạp từ bộ nhớ NVS)
+char target_ip[32] = "";
+char target_user[32] = "";
+char target_pass[64] = "";
+
+// Hàm giả lập đọc cấu hình từ NVS Flash
+void load_config_from_nvs() {
+    ESP_LOGI(TAG, "Đang tải cấu hình từ bộ nhớ NVS...");
+    // TODO: Viết logic mở NVS và đọc các key: "ssh_ip", "ssh_user", "ssh_pass"
+    // Nếu NVS trống (chưa có cấu hình), sẽ bật chế độ Wi-Fi Access Point (Phát Wi-Fi)
+    // để người dùng dùng điện thoại kết nối vào và điền thông tin qua Web Portal.
 }
 
-void wifi_init_sta(void) {
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_netif_create_default_wifi_sta();
-
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
-    esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, NULL);
-    esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL, NULL);
-
-    wifi_config_t wifi_config = {
-        .sta = {
-            .ssid = WIFI_SSID,
-            .password = WIFI_PASS,
-            .threshold.authmode = WIFI_AUTH_WPA2_PSK,
-        },
-    };
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
-    ESP_ERROR_CHECK(esp_wifi_start() );
-    ESP_LOGI(TAG, "Khởi tạo Wi-Fi thành công (STA mode).");
+// Hàm giả lập khởi tạo Web Server cấu hình (Captive Portal)
+void start_web_config_portal() {
+    ESP_LOGI(TAG, "Bật Web Portal ẩn để người dùng cấu hình IP, Username, Mật khẩu...");
+    // TODO: Khởi tạo HTTP Server (Cổng 80) giao diện HTML form.
 }
 
 void app_main(void)
 {
-    // Khởi tạo bộ nhớ NVS (bắt buộc để dùng Wi-Fi trên ESP-IDF)
+    // 1. Khởi tạo bộ nhớ NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
       ESP_ERROR_CHECK(nvs_flash_erase());
@@ -63,14 +40,20 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    ESP_LOGI(TAG, "Bắt đầu Giai đoạn 2: ESP32-C6 Net & SSH");
+    ESP_LOGI(TAG, "Bắt đầu khởi động ESP32-C6 HackerHMI");
     
-    // Bước 1: Kết nối Wi-Fi
-    wifi_init_sta();
+    // 2. Tải cấu hình động
+    load_config_from_nvs();
 
-    // Bước 2: TODO - Logic Ping LAN 200ms -> WAN (Tailscale)
-    
-    // Bước 3: TODO - Khởi tạo libssh2, đăng nhập SSH và gửi lệnh PowerShell
+    if (strlen(target_ip) == 0) {
+        // Nếu chưa cấu hình, bật chế độ Captive Portal cho người dùng nhập liệu
+        start_web_config_portal();
+    } else {
+        // Nếu đã cấu hình, kết nối Wi-Fi và tiến hành SSH
+        ESP_LOGI(TAG, "Đã có cấu hình. Đang kết nối SSH tới %s@%s...", target_user, target_ip);
+        // wifi_init_sta();
+        // start_ssh_client(target_ip, target_user, target_pass);
+    }
     
     while (1) {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
