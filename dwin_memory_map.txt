@@ -32,4 +32,5 @@ Khi thiết kế nút bấm trên màn hình (Ví dụ nút Bắn Hồng Ngoại
 - `0x0218`: Tọa độ Ngón 3. Gồm 4 byte: `[X3_High][X3_Low][Y3_High][Y3_Low]`.
 - `0x021C`: Tọa độ Ngón 4. Gồm 4 byte: `[X4_High][X4_Low][Y4_High][Y4_Low]`.
 - `0x0220`: Cờ Tap (Nhấp thả nhanh). Gửi `1` = Click Trái, gửi `2` = Click Phải.
+- `0x0224`: Lựa chọn Hệ điều hành (Gửi `0` = Win, `1` = Mac, `2` = Linux, `3` = Android).
 *(Lưu ý: Nếu ngón tay được nhấc lên, DWIN phải trả về tọa độ 0xFFFF cho ngón đó).*

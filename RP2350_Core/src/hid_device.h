@@ -5,10 +5,18 @@
 #include <stdbool.h>
 #include <math.h>
 
+// Trạng thái cấu hình Hệ điều hành (0=Win, 1=Mac, 2=Linux, 3=Android)
+static uint8_t current_os = 0; 
+
 // Các biến trạng thái lưu Tọa độ cũ
 static int16_t prev_x[4] = {-1, -1, -1, -1};
 static int16_t prev_y[4] = {-1, -1, -1, -1};
 static float prev_distance = -1.0;
+
+// Cập nhật OS từ HMI
+void hid_set_os(uint8_t os_type) {
+    if(os_type <= 3) current_os = os_type;
+}
 
 // Hàm gửi 1 phím nhấn / Tổ hợp phím (Bàn phím)
 void hid_send_key(uint8_t modifier, uint8_t keycode) {
@@ -59,16 +67,42 @@ void hid_gesture_2_fingers(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
     prev_x[1] = x2; prev_y[1] = y2;
 }
 
-// 3 NGÓN TAY: MacOS Mission Control hoặc App Switcher
+// 3 NGÓN TAY: Vuốt để mở Đa nhiệm / App Switcher (Tùy theo HĐH)
 void hid_gesture_3_fingers(int16_t y1, int16_t y2, int16_t y3) {
     if (prev_y[0] != -1) {
         int8_t delta_y = (int8_t)(((y1 - prev_y[0]) + (y2 - prev_y[1]) + (y3 - prev_y[2])) / 3);
         if (delta_y < -20) {
-            // Vuốt 3 ngón lên -> MacOS Mission Control (Ctrl + Mũi tên Lên)
-            // hid_send_key(KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_ARROW_UP);
+            // Vuốt 3 ngón LÊN (Mở Đa nhiệm / Task View)
+            switch(current_os) {
+                case 0: // Windows: Win + Tab
+                    // hid_send_key(KEYBOARD_MODIFIER_LEFTGUI, HID_KEY_TAB);
+                    break;
+                case 1: // MacOS: Ctrl + Lên (Mission Control)
+                    // hid_send_key(KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_ARROW_UP);
+                    break;
+                case 2: // Linux: Win + S (Overview)
+                    // hid_send_key(KEYBOARD_MODIFIER_LEFTGUI, HID_KEY_S);
+                    break;
+                case 3: // Android: Alt + Tab (Recent Apps)
+                    // hid_send_key(KEYBOARD_MODIFIER_LEFTALT, HID_KEY_TAB);
+                    break;
+            }
         } else if (delta_y > 20) {
-            // Vuốt 3 ngón xuống -> App Expose (Ctrl + Mũi tên Xuống)
-            // hid_send_key(KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_ARROW_DOWN);
+            // Vuốt 3 ngón XUỐNG (Thoát Đa nhiệm hoặc Mở Desktop)
+            switch(current_os) {
+                case 0: // Windows: Win + D (Show Desktop)
+                    // hid_send_key(KEYBOARD_MODIFIER_LEFTGUI, HID_KEY_D);
+                    break;
+                case 1: // MacOS: Ctrl + Xuống (App Expose)
+                    // hid_send_key(KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_ARROW_DOWN);
+                    break;
+                case 2: // Linux: Win + D
+                    // hid_send_key(KEYBOARD_MODIFIER_LEFTGUI, HID_KEY_D);
+                    break;
+                case 3: // Android: Home (Esc hoặc Alt+Tab lùi)
+                    // hid_send_key(0, HID_KEY_ESCAPE);
+                    break;
+            }
         }
     }
     prev_y[0] = y1; prev_y[1] = y2; prev_y[2] = y3;
