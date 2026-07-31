@@ -28,13 +28,15 @@ Khi thiết kế nút bấm trên màn hình (Ví dụ nút Bắn Hồng Ngoại
 - `CMD_OS_ANDROID`: Chuyển sang chế độ Android.
 
 ## 4. Chế độ Bàn phím & Chuột ảo (USB HID)
-- `0x0200`: Ô nhớ Bàn phím ảo (Gõ chữ trên HMI, RP2350 nhận và giả lập thành phím USB).
+### Bàn phím ảo 75% Layout
+- `0x0200`: Ô nhớ nhận ký tự ASCII. 
+*(Hướng dẫn DGUS: Để thiết kế bàn phím 75%, bạn tạo một Trang (Page) riêng chứa các nút bấm (F1-F12, Cụm phím điều hướng Mũi tên). Dùng chức năng "Basic Keyboard" hoặc gán từng nút là "Return Key Code" tương ứng với mã ASCII. Khi người dùng cần gõ phím, hãy cấu hình một nút gọi lệnh "Popup Window" để trượt cái bàn phím 75% này lên màn hình, gõ xong thì đóng lại để tiết kiệm diện tích).*
 
-**Cảm ứng Đa điểm (Multi-Touch Precision Touchpad):**
+### Cảm ứng Đa điểm (Multi-Touch Precision Touchpad):
 - `0x0210`: Tọa độ Ngón 1. Gồm 4 byte: `[X1_High][X1_Low][Y1_High][Y1_Low]`.
 - `0x0214`: Tọa độ Ngón 2. Gồm 4 byte: `[X2_High][X2_Low][Y2_High][Y2_Low]`.
 - `0x0218`: Tọa độ Ngón 3. Gồm 4 byte: `[X3_High][X3_Low][Y3_High][Y3_Low]`.
 - `0x021C`: Tọa độ Ngón 4. Gồm 4 byte: `[X4_High][X4_Low][Y4_High][Y4_Low]`.
 - `0x0220`: Cờ Tap (Nhấp thả nhanh). Gửi `1` = Click Trái, gửi `2` = Click Phải.
-- `0x0224`: Lựa chọn Hệ điều hành (Gửi `0` = Win, `1` = Mac, `2` = Linux, `3` = Android).
-*(Lưu ý: Nếu ngón tay được nhấc lên, DWIN phải trả về tọa độ 0xFFFF cho ngón đó).*
+- `0x0224`: Lựa chọn Hệ điều hành (Gửi `0` = Win, `1` = Mac, `2` = Linux, `3` = Android). 
+*(Hướng dẫn DGUS thiết kế Pop-up Đổi OS: Để tránh tốn diện tích, bạn tạo 1 nút bấm nhỏ hình Bánh răng. Khi bấm vào, cấu hình "Popup Window" hiện ra một cái bảng nhỏ chứa 4 nút OS. Bấm xong 1 nút thì tự động gọi lệnh Close Popup).*
