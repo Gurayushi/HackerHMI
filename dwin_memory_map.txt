@@ -1,0 +1,22 @@
+# BẢN ĐỒ BỘ NHỚ (MEMORY MAP) DÀNH CHO DWIN HMI
+Tài liệu này dùng để tham khảo khi thiết kế giao diện đồ họa bằng phần mềm DGUS của DWIN.
+
+## 1. Vùng nhớ Văn bản (Text / ASCII)
+- `0x0098`: Ô nhớ hiển thị Terminal/Log. Bất cứ chữ gì RP2350 gửi vào đây sẽ hiện lên màn hình.
+- `0x0100`: Ô nhớ cấu hình Wi-Fi SSID (Bàn phím ảo ghi vào đây).
+- `0x0110`: Ô nhớ cấu hình Wi-Fi Password.
+- `0x0120`: Ô nhớ cấu hình SSH IP.
+- `0x0130`: Ô nhớ cấu hình SSH Username.
+- `0x0140`: Ô nhớ cấu hình SSH Password.
+
+## 2. Vùng nhớ Biểu đồ (Biến thiên)
+- `0x1000`: % CPU Máy chủ (RP2350 đẩy số từ 0 - 100 vào đây để vẽ biểu đồ Cột).
+- `0x1010`: % RAM Máy chủ.
+- `0x1020`: Nhiệt độ CPU.
+
+## 3. Các Nút Bấm (Return Key Code)
+Khi thiết kế nút bấm trên màn hình (Ví dụ nút Bắn Hồng Ngoại), hãy cài đặt nút đó khi bấm sẽ trả về mã lệnh tương ứng để RP2350 hiểu:
+
+- `CMD_IR_FIRE`: Gán cho nút bấm "Tắt Tivi". RP2350 nhận được sẽ bắn sóng 38kHz.
+- `CMD_RF_OPEN`: Gán cho nút bấm "Mở Cổng". RP2350 nhận được sẽ bắn sóng 433MHz.
+- `CMD_SAVE_CF`: Gán cho nút bấm "Lưu Cấu Hình".
