@@ -29,4 +29,7 @@ Khi thiết kế nút bấm trên màn hình (Ví dụ nút Bắn Hồng Ngoại
 **Cảm ứng Đa điểm (Multi-Touch Precision Touchpad):**
 - `0x0210`: Tọa độ Ngón 1. Gồm 4 byte: `[X1_High][X1_Low][Y1_High][Y1_Low]`.
 - `0x0214`: Tọa độ Ngón 2. Gồm 4 byte: `[X2_High][X2_Low][Y2_High][Y2_Low]`.
-*(Lưu ý: Nếu màn hình trả về X2, Y2 = 0xFFFF tức là ngón 2 đang được nhấc lên khỏi màn hình).*
+- `0x0218`: Tọa độ Ngón 3. Gồm 4 byte: `[X3_High][X3_Low][Y3_High][Y3_Low]`.
+- `0x021C`: Tọa độ Ngón 4. Gồm 4 byte: `[X4_High][X4_Low][Y4_High][Y4_Low]`.
+- `0x0220`: Cờ Tap (Nhấp thả nhanh). Gửi `1` = Click Trái, gửi `2` = Click Phải.
+*(Lưu ý: Nếu ngón tay được nhấc lên, DWIN phải trả về tọa độ 0xFFFF cho ngón đó).*
