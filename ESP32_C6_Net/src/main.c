@@ -24,10 +24,15 @@ void load_config_from_nvs() {
     // để người dùng dùng điện thoại kết nối vào và điền thông tin qua Web Portal.
 }
 
-// Hàm giả lập khởi tạo Web Server cấu hình (Captive Portal)
-void start_web_config_portal() {
-    ESP_LOGI(TAG, "Bật Web Portal ẩn để người dùng cấu hình IP, Username, Mật khẩu...");
-    // TODO: Khởi tạo HTTP Server (Cổng 80) giao diện HTML form.
+// Hàm giả lập giao tiếp với RP2350 (HMI master)
+void listen_to_rp2350_for_config() {
+    ESP_LOGI(TAG, "Đang chờ RP2350 gửi cấu hình từ HMI Keyboard...");
+    // TODO: Thiết lập ngắt UART hoặc SPI Slave
+    // Khi người dùng gõ phím trên màn hình DWIN và bấm Save:
+    // 1. DWIN gửi chuỗi UART đến RP2350
+    // 2. RP2350 gửi gói dữ liệu (IP, Username, Password) sang ESP32-C6
+    // 3. ESP32-C6 gọi lệnh nvs_set_str() để lưu vào bộ nhớ.
+    // 4. ESP32-C6 tự khởi động lại (esp_restart) để áp dụng cấu hình mới.
 }
 
 void app_main(void)
@@ -46,10 +51,10 @@ void app_main(void)
     load_config_from_nvs();
 
     if (strlen(target_ip) == 0) {
-        // Nếu chưa cấu hình, bật chế độ Captive Portal cho người dùng nhập liệu
-        start_web_config_portal();
+        // HMI trống, chờ người dùng bấm dấu [+] trên màn hình và gõ phím
+        listen_to_rp2350_for_config();
     } else {
-        // Nếu đã cấu hình, kết nối Wi-Fi và tiến hành SSH
+        // Đã có cấu hình trong NVS, tiến hành SSH
         ESP_LOGI(TAG, "Đã có cấu hình. Đang kết nối SSH tới %s@%s...", target_user, target_ip);
         // wifi_init_sta();
         // start_ssh_client(target_ip, target_user, target_pass);
