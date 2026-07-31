@@ -1,0 +1,25 @@
+# HackerHMI: The Ultimate Cyber-Deck & Server Dashboard 🚀
+
+> **HackerHMI** is an advanced, asymmetric hardware console that bridges the gap between a professional multi-server dashboard and a portable penetration testing tool (à la Flipper Zero). 
+
+Powered by the bleeding-edge **Raspberry Pi RP2350** for graphics/PIO manipulation and the **ESP32-C6** for stealthy networking, this 7-inch DWIN touchscreen device is built for system administrators and hardware hackers alike.
+
+## 🔥 Key Features
+
+*   **Asymmetric Brains:** Dual-MCU architecture. RP2350 handles the UI, ANSI Terminal Emulation, and hardware modules. ESP32-C6 manages Wi-Fi 6, Tailscale VPN routing, and libssh2 connections.
+*   **Zero-Client SSH Terminal:** No custom API software required on your servers. HackerHMI connects directly to your Windows/Linux machines via native SSH over a secure Tailscale VPN tunnel.
+*   **Hardware Weaponization:** Built-in support for Flipper Zero-style hardware modules via RP2350's PIO:
+    *   📡 **Sub-1GHz (CC1101):** Record and replay RF signals (Garage doors, gates).
+    *   💳 **NFC & RFID (PN532 / RDM6300):** Clone 13.56MHz and 125kHz access cards.
+    *   ⌨️ **BadUSB / FIDO2:** Keystroke injection and hardware authentication via TinyUSB.
+    *   🌐 **Wi-Fi/BLE Marauder:** Deauth and BLE spam attacks powered by ESP32-C6.
+*   **Silky Smooth UI:** Features a custom Ring-Buffer algorithm enabling full 50KB scrollback history on the DWIN HMI, rendering ANSI colors at a blazing `921600 baud`.
+*   **Dual OTA Updates:** ESP32-C6 updates itself via Wi-Fi and acts as an onboard SWD Programmer to flash the RP2350 wirelessly.
+
+## 🛠️ Hardware Stack
+*   **Main Core:** Raspberry Pi Pico 2 (RP2350)
+*   **Network Co-Processor:** ESP32-C6-DevKitC
+*   **Display:** 7.0" DWIN HMI (DMT10600C070-07WTZ5)
+
+---
+*Built with C/C++ using Pico SDK and ESP-IDF.*
