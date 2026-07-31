@@ -38,11 +38,34 @@ bool rdm6300_read_card(char* out_uid) {
     return false;
 }
 
-// Bắn lệnh qua I2C để yêu cầu PN532 quét thẻ NFC (MiFare / NTAG)
+// Hàm gửi khung dữ liệu thô qua I2C cho PN532
+void pn532_i2c_write(uint8_t* data, uint8_t length) {
+    i2c_write_blocking(PN532_I2C_PORT, 0x24, data, length, false);
+}
+
+// Hàm đọc khung dữ liệu thô từ PN532 qua I2C
+void pn532_i2c_read(uint8_t* buffer, uint8_t length) {
+    // Đọc trạng thái Ready (Cần chờ thanh ghi trạng thái báo sẵn sàng)
+    uint8_t status = 0;
+    while (status != 0x01) {
+        i2c_read_blocking(PN532_I2C_PORT, 0x24, &status, 1, false);
+        sleep_ms(2);
+    }
+    // Đọc khung dữ liệu
+    i2c_read_blocking(PN532_I2C_PORT, 0x24, buffer, length, false);
+}
+
+// Hàm kiểm tra cơ bản sự tồn tại của thẻ (Không chứa logic sao chép)
 bool pn532_read_nfc(uint8_t* out_uid, uint8_t* uid_len) {
     // Lệnh InListPassiveTarget (0x4A) để quét thẻ
-    // TODO: Gửi lệnh qua i2c_write_blocking và đọc phản hồi
-    return false;
+    uint8_t cmd_scan[] = {0x00, 0x00, 0xFF, 0x04, 0xFC, 0xD4, 0x4A, 0x01, 0x00, 0xE1, 0x00};
+    pn532_i2c_write(cmd_scan, sizeof(cmd_scan));
+    
+    // Đọc ACK và Response (Chỉ minh họa giao thức cơ bản)
+    uint8_t response[20];
+    pn532_i2c_read(response, 20);
+    
+    return false; // Cần phân tích Response để lấy UID hợp lệ
 }
 
 #endif // RFID_NFC_H
