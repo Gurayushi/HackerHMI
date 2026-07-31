@@ -25,4 +25,8 @@ Khi thiết kế nút bấm trên màn hình (Ví dụ nút Bắn Hồng Ngoại
 
 ## 4. Chế độ Bàn phím & Chuột ảo (USB HID)
 - `0x0200`: Ô nhớ Bàn phím ảo (Gõ chữ trên HMI, RP2350 nhận và giả lập thành phím USB).
-- `0x0210`: Ô nhớ Touchpad (HMI gửi liên tục tọa độ X, Y tuyệt đối khi vuốt, RP2350 sẽ tự tính Delta để di chuyển chuột máy tính).
+
+**Cảm ứng Đa điểm (Multi-Touch Precision Touchpad):**
+- `0x0210`: Tọa độ Ngón 1. Gồm 4 byte: `[X1_High][X1_Low][Y1_High][Y1_Low]`.
+- `0x0214`: Tọa độ Ngón 2. Gồm 4 byte: `[X2_High][X2_Low][Y2_High][Y2_Low]`.
+*(Lưu ý: Nếu màn hình trả về X2, Y2 = 0xFFFF tức là ngón 2 đang được nhấc lên khỏi màn hình).*

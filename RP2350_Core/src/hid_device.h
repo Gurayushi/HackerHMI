@@ -22,11 +22,42 @@ void hid_send_key(char ascii_char) {
     // tud_hid_keyboard_report(0, 0, NULL);
 }
 
-// Hàm gửi tọa độ di chuyển chuột (Touchpad)
-// Sử dụng thư viện TinyUSB: tud_hid_mouse_report(...)
-void hid_move_mouse(int8_t delta_x, int8_t delta_y) {
-    // delta_x, delta_y nằm trong khoảng -127 đến 127
-    // tud_hid_mouse_report(0, 0, delta_x, delta_y, 0, 0);
+// Biến trạng thái lưu Tọa độ cũ để tính toán Delta
+static int16_t prev_x1 = -1, prev_y1 = -1;
+static int16_t prev_x2 = -1, prev_y2 = -1;
+
+// Hàm gửi tọa độ di chuyển chuột (1 ngón - Di chuyển trỏ chuột)
+void hid_move_mouse_1_finger(int16_t curr_x, int16_t curr_y) {
+    if (prev_x1 != -1 && prev_y1 != -1) {
+        int8_t delta_x = (int8_t)(curr_x - prev_x1);
+        int8_t delta_y = (int8_t)(curr_y - prev_y1);
+        
+        // tud_hid_mouse_report(0, 0, delta_x, delta_y, 0, 0);
+    }
+    prev_x1 = curr_x;
+    prev_y1 = curr_y;
+}
+
+// Hàm gửi thao tác cuộn trang (2 ngón - Scrolling giống MacOS)
+void hid_scroll_2_fingers(int16_t curr_x1, int16_t curr_y1, int16_t curr_x2, int16_t curr_y2) {
+    if (prev_y1 != -1 && prev_y2 != -1) {
+        // Tính trung bình cộng độ dời Y của cả 2 ngón tay
+        int8_t delta_y = (int8_t)(((curr_y1 - prev_y1) + (curr_y2 - prev_y2)) / 2);
+        
+        // Đảo ngược dấu để giống "Natural Scrolling" của Mac (Vuốt lên thì trang kéo xuống)
+        int8_t scroll_val = -delta_y; 
+        
+        // Gửi qua USB Report thông số Wheel (Cuộn dọc)
+        // tud_hid_mouse_report(0, 0, 0, 0, scroll_val, 0);
+    }
+    prev_y1 = curr_y1;
+    prev_y2 = curr_y2;
+}
+
+// Reset trạng thái khi nhấc tay khỏi màn hình
+void hid_touchpad_release() {
+    prev_x1 = -1; prev_y1 = -1;
+    prev_x2 = -1; prev_y2 = -1;
 }
 
 // Hàm gửi thao tác nhấn chuột
