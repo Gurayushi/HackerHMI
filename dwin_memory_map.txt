@@ -20,3 +20,9 @@ Khi thiết kế nút bấm trên màn hình (Ví dụ nút Bắn Hồng Ngoại
 - `CMD_IR_FIRE`: Gán cho nút bấm "Tắt Tivi". RP2350 nhận được sẽ bắn sóng 38kHz.
 - `CMD_RF_OPEN`: Gán cho nút bấm "Mở Cổng". RP2350 nhận được sẽ bắn sóng 433MHz.
 - `CMD_SAVE_CF`: Gán cho nút bấm "Lưu Cấu Hình".
+- `CMD_MOUSE_LCLICK`: Nhấn chuột trái (Touchpad).
+- `CMD_MOUSE_RCLICK`: Nhấn chuột phải (Touchpad).
+
+## 4. Chế độ Bàn phím & Chuột ảo (USB HID)
+- `0x0200`: Ô nhớ Bàn phím ảo (Gõ chữ trên HMI, RP2350 nhận và giả lập thành phím USB).
+- `0x0210`: Ô nhớ Touchpad (HMI gửi liên tục tọa độ X, Y tuyệt đối khi vuốt, RP2350 sẽ tự tính Delta để di chuyển chuột máy tính).
