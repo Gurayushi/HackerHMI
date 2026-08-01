@@ -288,43 +288,70 @@
             box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
         }
 
-        /* Tiến trình nạp (Khung chứa) */
-        .progress-wrapper { 
-            display: none; 
-            margin-top: 2rem; 
-            text-align: left; 
-            background: rgba(6, 6, 12, 0.9);
-            border: 1.5px solid rgba(188, 57, 250, 0.3);
-            border-radius: 14px;
-            padding: 1.2rem;
-            box-shadow: 
-                0 0 20px rgba(188, 57, 250, 0.15),
-                inset 0 2px 4px rgba(0,0,0,0.8);
-            animation: fadeIn 0.3s ease-out forwards;
+        /* Modal Popup Lớp phủ Blur */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(3, 3, 7, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: rgba(12, 12, 22, 0.95);
+            border: 2px solid var(--accent-neon);
+            border-radius: 24px;
+            padding: 2.2rem 2rem;
+            width: 440px;
+            box-shadow: 0 0 50px rgba(188, 57, 250, 0.4), 0 20px 60px rgba(0, 0, 0, 0.9);
+            transform: scale(0.85);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: left;
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: scale(1);
+        }
+
+        .container {
+            transition: filter 0.4s ease, transform 0.4s ease;
+        }
+
+        .container.blurred {
+            filter: blur(10px) brightness(0.6);
+            pointer-events: none;
+            transform: scale(0.98);
         }
 
         .progress-title-wrapper {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             color: var(--text-primary);
-            font-weight: 500;
+            font-weight: 600;
         }
 
         /* Thanh tiến trình thiết kế dải màu chuyển động dạng Capsule Neon */
         .progress-bar { 
             background: rgba(255, 255, 255, 0.03); 
             border-radius: 9999px; 
-            height: 10px; 
+            height: 12px; 
             overflow: hidden; 
-            margin-top: 0.7rem; 
-            border: 1px solid rgba(188, 57, 250, 0.2);
+            margin-top: 1rem; 
+            border: 1px solid rgba(188, 57, 250, 0.3);
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
         }
 
@@ -372,9 +399,9 @@
         }
 
         .status-text { 
-            font-size: 0.8rem; 
+            font-size: 0.85rem; 
             color: #a78bfa; 
-            margin-top: 0.5rem; 
+            margin-top: 0.8rem; 
             display: flex; 
             justify-content: space-between; 
             font-weight: 300;
@@ -433,9 +460,11 @@
             
             <button type="button" class="btn" onclick="startUpload()">Khởi động nâng cấp</button>
         </form>
+    </div>
 
-        <!-- Trạng thái tiến trình -->
-        <div class="progress-wrapper" id="progressWrapper">
+    <!-- Modal Popup Tiến trình Lớp phủ Blur -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-card">
             <div class="progress-title-wrapper">
                 <span id="progressTitle">Đang nạp dữ liệu...</span>
                 <span id="percentText">0%</span>
@@ -538,6 +567,16 @@
             }
         }
 
+        function showModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.querySelector('.container').classList.add('blurred');
+        }
+
+        function hideModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.querySelector('.container').classList.remove('blurred');
+        }
+
         function startUpload() {
             const file = document.getElementById('fileInput').files[0];
             const chip = document.getElementById('selectedChip').value;
@@ -560,8 +599,12 @@
                 return;
             }
 
-            document.getElementById('progressWrapper').style.display = 'block';
+            // Mở Modal Popup và Blur background
+            showModal();
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('percentText').innerText = '0%';
             document.getElementById('progressTitle').innerText = 'Đang nạp dữ liệu sang ' + chip.toUpperCase() + '...';
+            document.getElementById('statusInfo').innerText = 'Đang khởi tạo kết nối...';
             
             let url = '/update_esp32';
             if (chip === 'rp2350') url = '/update_rp2350';
@@ -578,10 +621,11 @@
                     
                     if (pct >= 100) {
                         clearInterval(interval);
-                        document.getElementById('statusInfo').innerText = 'Đã truyền xong dữ liệu! (UI Test Mode)';
+                        document.getElementById('statusInfo').innerText = 'Đã hoàn tất 100%!';
                         setTimeout(() => {
                             alert('Nâng cấp thành công! Hệ thống đang tự động áp dụng cấu hình mới.');
-                        }, 200);
+                            hideModal();
+                        }, 500);
                     }
                 }, 80);
                 return;
@@ -600,14 +644,23 @@
             xhr.onload = function() {
                 if(xhr.status === 200) {
                     document.getElementById('statusInfo').innerText = 'Nâng cấp thành công!';
-                    alert('Nâng cấp thành công!');
+                    setTimeout(() => {
+                        alert('Nâng cấp thành công!');
+                        hideModal();
+                    }, 400);
                 } else {
                     alert('Lỗi nạp OTA: ' + xhr.responseText);
+                    hideModal();
                 }
+            };
+            xhr.onerror = function() {
+                alert('Lỗi kết nối máy chủ OTA!');
+                hideModal();
             };
             const formData = new FormData();
             formData.append('update', file);
             xhr.send(formData);
-        }</script>
+        }
+    </script>
 </body>
 </html>
