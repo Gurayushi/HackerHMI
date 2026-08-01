@@ -12,6 +12,13 @@
 
 // Thư viện SSH sẽ được compile từ idf_component.yml
 #include "libssh2.h"
+#include "driver/spi_slave.h"
+#include "driver/gpio.h"
+
+#define GPIO_MOSI 19
+#define GPIO_MISO 16
+#define GPIO_SCLK 18
+#define GPIO_CS   17
 
 static const char *TAG = "HACKER_NET";
 
@@ -27,15 +34,91 @@ char target_ip[32] = "";
 char target_user[32] = "";
 char target_pass[64] = "";
 
-// Hàm giả lập giao tiếp với RP2350 (HMI master)
+// Hàm giao tiếp SPI Slave với RP2350 (HMI master) để nhận cấu hình
 void listen_to_rp2350_for_config() {
-    ESP_LOGI(TAG, "Đang chờ RP2350 gửi cấu hình từ HMI Keyboard...");
-    // TODO: Thiết lập ngắt UART hoặc SPI Slave
-    // Khi người dùng gõ phím trên màn hình DWIN và bấm Save:
-    // 1. DWIN gửi chuỗi UART đến RP2350
-    // 2. RP2350 gửi gói dữ liệu (SSID, PASS, IP, USER, PASS) sang ESP32-C5
-    // 3. ESP32-C5 gọi lệnh nvs_set_str() để lưu vào bộ nhớ.
-    // 4. ESP32-C5 tự khởi động lại (esp_restart) để áp dụng cấu hình mới.
+    ESP_LOGI(TAG, "Khởi tạo SPI Slave để nhận cấu hình từ RP2350...");
+    
+    // Cấu hình các chân Bus SPI2
+    spi_bus_config_t buscfg = {
+        .mosi_io_num = GPIO_MOSI,
+        .miso_io_num = GPIO_MISO,
+        .sclk_io_num = GPIO_SCLK,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+    };
+
+    // Cấu hình giao tiếp Slave
+    spi_slave_interface_config_t slvcfg = {
+        .mode = 0,
+        .spics_io_num = GPIO_CS,
+        .queue_size = 3,
+        .flags = 0,
+    };
+
+    // Khởi tạo driver SPI Slave trên SPI2_HOST
+    esp_err_t ret = spi_slave_initialize(SPI2_HOST, &buscfg, &slvcfg, SPI_DMA_CH_AUTO);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Lỗi khởi tạo SPI Slave: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    // Bộ đệm nhận dữ liệu
+    WORD_ALIGNED_ATTR char recvbuf[128] = "";
+    spi_slave_transaction_t t = {
+        .length = 128 * 8, // Chiều dài giao tiếp tính bằng bit
+        .rx_buffer = recvbuf,
+    };
+
+    while (1) {
+        memset(recvbuf, 0, sizeof(recvbuf));
+        
+        // Đợi cho đến khi Master (RP2350) bắt đầu xung Clock truyền tin
+        ret = spi_slave_transmit(SPI2_HOST, &t, portMAX_DELAY);
+        if (ret == ESP_OK) {
+            ESP_LOGI(TAG, "Nhận được gói tin từ RP2350: %s", recvbuf);
+            
+            // Phân tích cú pháp: key=value (Vd: wifi_ssid=MyHomeWiFi)
+            char *equal_sign = strchr(recvbuf, '=');
+            if (equal_sign != NULL) {
+                *equal_sign = '\0';
+                char *key = recvbuf;
+                char *value = equal_sign + 1;
+                
+                // Loại bỏ ký tự xuống dòng / dấu cách dư thừa ở cuối
+                int len = strlen(value);
+                while(len > 0 && (value[len-1] == '\n' || value[len-1] == '\r' || value[len-1] == ' ')) {
+                    value[len-1] = '\0';
+                    len--;
+                }
+
+                // Ghi cấu hình nhận được trực tiếp vào NVS Flash
+                nvs_handle_t my_handle;
+                esp_err_t err = nvs_open("storage", NVS_READWRITE, &my_handle);
+                if (err == ESP_OK) {
+                    err = nvs_set_str(my_handle, key, value);
+                    if (err == ESP_OK) {
+                        nvs_commit(my_handle);
+                        ESP_LOGI(TAG, "Đã lưu NVS thành công: %s = %s", key, value);
+                    } else {
+                        ESP_LOGE(TAG, "Lỗi ghi NVS key %s: %s", key, esp_err_to_name(err));
+                    }
+                    nvs_close(my_handle);
+                    
+                    // Nếu là khóa mật khẩu hoặc lệnh kết thúc, tự động reboot để áp dụng kết nối SSH
+                    if (strcmp(key, "save_restart") == 0 || strcmp(key, "ssh_pass") == 0 || strcmp(key, "wifi_pass") == 0) {
+                        ESP_LOGI(TAG, "Khởi động lại ESP32-C5 để áp dụng cấu hình mới...");
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        esp_restart();
+                    }
+                } else {
+                    ESP_LOGE(TAG, "Lỗi mở NVS phân vùng storage: %s", esp_err_to_name(err));
+                }
+            }
+        } else {
+            ESP_LOGE(TAG, "Lỗi truyền nhận SPI Slave: %s", esp_err_to_name(ret));
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+        }
+    }
 }
 
 // Hàm đọc NVS

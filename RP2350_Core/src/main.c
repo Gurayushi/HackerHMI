@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
+#include "hardware/vreg.h"
+#include "hardware/clocks.h"
 
 // Custom Headers (UI & Giao tiếp)
 #include "dwin_ui.h"
@@ -43,6 +45,12 @@ void push_config_to_c5(const char* config_str) {
 }
 
 int main() {
+    // --- ÉP XUNG LÊN 300MHz (Gấp đôi mặc định 150MHz) ---
+    // Nâng nhẹ điện áp lõi để giữ hệ thống chạy ổn định, không lỗi dữ liệu
+    vreg_set_voltage(VREG_VOLTAGE_1_20);
+    sleep_ms(2);
+    set_sys_clock_khz(300000, true);
+    
     stdio_init_all();
     
     // --- KHỞI TẠO HỆ THỐNG CƠ BẢN ---
