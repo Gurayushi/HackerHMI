@@ -547,6 +547,13 @@
         function fileSelected() {
             const file = document.getElementById('fileInput').files[0];
             if(file) {
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (ext !== 'bin' && ext !== 'icl') {
+                    alert('Chỉ chấp nhận các file định dạng .bin hoặc .icl!');
+                    document.getElementById('fileInput').value = '';
+                    document.getElementById('uploadText').innerText = 'Kéo thả hoặc Click để chọn file .bin / .icl';
+                    return;
+                }
                 document.getElementById('uploadText').innerText = file.name + ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
             }
         }
@@ -559,6 +566,20 @@
                 return; 
             }
             
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (chip === 'esp32' && ext !== 'bin') {
+                alert('Lỗi: Nâng cấp firmware ESP32-C5 chỉ chấp nhận tệp tin .bin!');
+                return;
+            }
+            if (chip === 'rp2350' && ext !== 'bin') {
+                alert('Lỗi: Nâng cấp firmware RP2350 chỉ chấp nhận tệp tin .bin!');
+                return;
+            }
+            if (chip === 'dwin' && ext !== 'bin' && ext !== 'icl') {
+                alert('Lỗi: Nâng cấp giao diện DWIN chỉ chấp nhận tệp tin .bin hoặc .icl!');
+                return;
+            }
+
             document.getElementById('progressWrapper').style.display = 'block';
             document.getElementById('progressTitle').innerText = 'Đang nạp dữ liệu sang ' + chip.toUpperCase() + '...';
             
@@ -607,7 +628,6 @@
             const formData = new FormData();
             formData.append('update', file);
             xhr.send(formData);
-        }
-    </script>
+        }</script>
 </body>
 </html>
