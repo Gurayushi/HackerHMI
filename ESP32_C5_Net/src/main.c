@@ -33,9 +33,9 @@ void listen_to_rp2350_for_config() {
     // TODO: Thiết lập ngắt UART hoặc SPI Slave
     // Khi người dùng gõ phím trên màn hình DWIN và bấm Save:
     // 1. DWIN gửi chuỗi UART đến RP2350
-    // 2. RP2350 gửi gói dữ liệu (SSID, PASS, IP, USER, PASS) sang ESP32-C6
-    // 3. ESP32-C6 gọi lệnh nvs_set_str() để lưu vào bộ nhớ.
-    // 4. ESP32-C6 tự khởi động lại (esp_restart) để áp dụng cấu hình mới.
+    // 2. RP2350 gửi gói dữ liệu (SSID, PASS, IP, USER, PASS) sang ESP32-C5
+    // 3. ESP32-C5 gọi lệnh nvs_set_str() để lưu vào bộ nhớ.
+    // 4. ESP32-C5 tự khởi động lại (esp_restart) để áp dụng cấu hình mới.
 }
 
 // Hàm đọc NVS
@@ -162,7 +162,7 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    ESP_LOGI(TAG, "Bắt đầu khởi động ESP32-C6 HackerHMI");
+    ESP_LOGI(TAG, "Bắt đầu khởi động ESP32-C5 HackerHMI");
     
     // 2. Tải cấu hình động
     load_config_from_nvs();

@@ -13,33 +13,33 @@
 #include "rfid_nfc.h"
 #include "ir_blaster.h"
 
-// Khai báo SPI0 kết nối với ESP32-C6
-#define C6_SPI_PORT spi0
-#define C6_PIN_MISO 16
-#define C6_PIN_CS   17
-#define C6_PIN_SCK  18
-#define C6_PIN_MOSI 19
+// Khai báo SPI0 kết nối với ESP32-C5
+#define C5_SPI_PORT spi0
+#define C5_PIN_MISO 16
+#define C5_PIN_CS   17
+#define C5_PIN_SCK  18
+#define C5_PIN_MOSI 19
 
 // Biến toàn cục chứa bộ đệm Terminal 30KB
 RingBuffer terminal_buffer;
 
-void init_spi_master() {
-    spi_init(C6_SPI_PORT, 1000 * 1000); // Tốc độ 1 MHz
-    gpio_set_function(C6_PIN_MISO, GPIO_FUNC_SPI);
-    gpio_set_function(C6_PIN_SCK, GPIO_FUNC_SPI);
-    gpio_set_function(C6_PIN_MOSI, GPIO_FUNC_SPI);
+void init_spi_for_c5() {
+    spi_init(C5_SPI_PORT, 1000 * 1000); // Tốc độ 1 MHz
+    gpio_set_function(C5_PIN_MISO, GPIO_FUNC_SPI);
+    gpio_set_function(C5_PIN_SCK, GPIO_FUNC_SPI);
+    gpio_set_function(C5_PIN_MOSI, GPIO_FUNC_SPI);
     
-    // Khởi tạo Chip Select (CS)
-    gpio_init(C6_PIN_CS);
-    gpio_set_dir(C6_PIN_CS, GPIO_OUT);
-    gpio_put(C6_PIN_CS, 1);
+    // Khởi tạo chân CS
+    gpio_init(C5_PIN_CS);
+    gpio_set_dir(C5_PIN_CS, GPIO_OUT);
+    gpio_put(C5_PIN_CS, 1);
 }
 
-// Hàm đẩy Cấu hình (Nhập từ bàn phím HMI) sang ESP32-C6 để lưu NVS
-void push_config_to_c6(const char* config_str) {
-    gpio_put(C6_PIN_CS, 0); // Kéo CS xuống LOW để chọn C6
-    spi_write_blocking(C6_SPI_PORT, (const uint8_t*)config_str, strlen(config_str));
-    gpio_put(C6_PIN_CS, 1); // Đẩy CS lên HIGH
+// Hàm đẩy Cấu hình (Nhập từ bàn phím HMI) sang ESP32-C5 để lưu NVS
+void push_config_to_c5(const char* config_str) {
+    gpio_put(C5_PIN_CS, 0); // Kéo CS xuống LOW để chọn C5
+    spi_write_blocking(C5_SPI_PORT, (const uint8_t*)config_str, strlen(config_str));
+    gpio_put(C5_PIN_CS, 1); // Đẩy CS lên HIGH
 }
 
 int main() {
@@ -48,7 +48,7 @@ int main() {
     // --- KHỞI TẠO HỆ THỐNG CƠ BẢN ---
     term_init(&terminal_buffer);
     dwin_init();
-    init_spi_master();
+    init_spi_for_c5();
     
     // --- KHỞI TẠO VŨ KHÍ HACKER ---
     badusb_init();
@@ -93,9 +93,9 @@ int main() {
             }
             // -------------------------------------------------
             else {
-                // Các chuỗi gõ phím thông thường (IP, Username) sẽ gửi sang C6 để lưu
-                push_config_to_c6(hmi_input);
-                dwin_write_text(0x0098, "Config sent to ESP32-C6 for NVS Storage.\n");
+                // Các chuỗi gõ phím thông thường (IP, Username) sẽ gửi sang C5 để lưu
+                push_config_to_c5(hmi_input);
+                dwin_write_text(0x0098, "Config sent to ESP32-C5 for NVS Storage.\n");
             }
         }
         

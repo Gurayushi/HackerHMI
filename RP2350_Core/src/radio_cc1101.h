@@ -5,7 +5,7 @@
 #include "hardware/gpio.h"
 #include <stdint.h>
 
-// Xung đột SPI0 (Dành cho C6), nên gán CC1101 vào SPI1
+// Xung đột SPI0 (Dành cho C5), nên gán CC1101 vào SPI1
 #define CC1101_SPI_PORT spi1
 #define CC1101_PIN_MISO 12
 #define CC1101_PIN_CS   13
