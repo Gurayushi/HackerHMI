@@ -15,6 +15,7 @@
 #include "driver/spi_slave.h"
 #include "driver/gpio.h"
 #include "rp2350_swd_flasher.h"
+#include "ota_server.h"
 
 #define GPIO_MOSI 19
 #define GPIO_MISO 16
@@ -51,6 +52,9 @@ static esp_ble_adv_params_t adv_params = {
 };
 
 static const char *TAG = "HACKER_NET";
+
+// Biến kiểm soát khởi động Wi-Fi một lần duy nhất
+static bool wifi_started = false;
 
 // Biến trạng thái Wi-Fi
 static EventGroupHandle_t wifi_event_group;
@@ -186,6 +190,19 @@ void listen_to_rp2350_for_config() {
                     len--;
                 }
 
+                // Xử lý các lệnh cấu hình động Runtime không ghi vào NVS Flash
+                if (strcmp(key, "start_ota") == 0) {
+                    if (strcmp(value, "1") == 0) {
+                        ESP_LOGI(TAG, "Nhận tín hiệu từ RP2350: Kích hoạt OTA Web Server...");
+                        wifi_init_sta();
+                        start_ota_webserver();
+                    } else if (strcmp(value, "0") == 0) {
+                        ESP_LOGI(TAG, "Nhận tín hiệu từ RP2350: Dừng OTA Web Server...");
+                        stop_ota_webserver();
+                    }
+                    continue; // Bỏ qua ghi vào NVS Flash để bảo vệ tuổi thọ chip
+                }
+
                 // Ghi cấu hình nhận được trực tiếp vào NVS Flash
                 nvs_handle_t my_handle;
                 esp_err_t err = nvs_open("storage", NVS_READWRITE, &my_handle);
@@ -267,6 +284,11 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 
 // Khởi tạo Wi-Fi Station
 void wifi_init_sta(void) {
+    if (wifi_started) {
+        ESP_LOGI(TAG, "Wi-Fi đã được khởi chạy từ trước.");
+        return;
+    }
+    wifi_started = true;
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());

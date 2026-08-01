@@ -27,6 +27,7 @@ Khi thiết kế nút bấm trên màn hình (Ví dụ nút Bắn Hồng Ngoại
 - `CMD_OS_LINUX`: Chuyển sang chế độ Linux.
 - `CMD_OS_ANDROID`: Chuyển sang chế độ Android.
 - `CMD_FLASH_MODE`: Kích hoạt chế độ Cầu nối nạp code USB-to-UART cho ESP32-C5.
+- `CMD_START_OTA`: Kích hoạt Web Server nạp OTA không dây qua Wi-Fi.
 
 ## 4. Chế độ Bàn phím & Chuột ảo (USB HID)
 ### Bàn phím ảo 75% Layout

@@ -123,16 +123,17 @@ int main() {
                 uint8_t bright = atoi(hmi_input + 11);
                 hid_set_brightness(bright);
             }
-            // --- BẮT ĐẦU CHẾ ĐỘ NẠP FIRMWARE CHO ESP32-C5 ---
+            // --- BẮT ĐẦU CHẾ ĐỘ NẠP FIRMWARE CỨU HỘ CHO ESP32-C5 ---
             else if (strncmp(hmi_input, "CMD_FLASH_MODE", 14) == 0) {
                 dwin_write_text(0x0098, "\n[!] ENTERING USB-TO-UART FLASH MODE...\n");
                 dwin_write_text(0x0098, "[!] Connect PC to RP2350 USB and run esptool.\n");
-                
-                // Kích hoạt chuỗi reset bootloader trên chân cứng EN/IO9
                 esp_enter_bootloader();
-                
-                // Khởi chạy vòng lặp vô tận cầu nối dữ liệu
                 esp_uart_bridge_task();
+            }
+            // --- BẮT ĐẦU CHẾ ĐỘ NẠP OTA KHÔNG DÂY QUA WI-FI ---
+            else if (strncmp(hmi_input, "CMD_START_OTA", 13) == 0) {
+                push_config_to_c5("start_ota=1");
+                dwin_write_text(0x0098, "[+] Requested ESP32-C5 to launch OTA Web Server...\n");
             }
             // -------------------------------------------------
             else {
