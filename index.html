@@ -464,7 +464,7 @@
         const ctx = canvas.getContext('2d');
         let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
         let points = [];
-        const maxPoints = 25;
+        const maxPoints = 50;
 
         for (let i = 0; i < maxPoints; i++) {
             points.push({ x: mouse.x, y: mouse.y });
@@ -491,8 +491,8 @@
             for (let i = 1; i < maxPoints; i++) {
                 let p = points[i];
                 let prev = points[i - 1];
-                p.x += (prev.x - p.x) * 0.45;
-                p.y += (prev.y - p.y) * 0.45;
+                p.x += (prev.x - p.x) * 0.22;
+                p.y += (prev.y - p.y) * 0.22;
             }
 
             ctx.lineCap = 'round';
@@ -510,7 +510,7 @@
                 
                 let alpha = 1 - (i / maxPoints);
                 ctx.strokeStyle = `rgba(188, 57, 250, ${alpha})`;
-                ctx.lineWidth = (maxPoints - i) * 0.6;
+                ctx.lineWidth = (maxPoints - i) * 0.35;
                 ctx.stroke();
             }
             requestAnimationFrame(animateTrail);
