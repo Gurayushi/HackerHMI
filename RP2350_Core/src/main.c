@@ -99,6 +99,28 @@ int main() {
             else if (strncmp(hmi_input, "CMD_OS_ANDROID", 14) == 0) {
                 hid_set_os(3); dwin_write_text(0x0098, "[+] Switched to Android Mode\n");
             }
+            // --- STREAM DECK: CÁC PHÍM TẮT ĐA NHIỆM (MACRO MULTI-ACTION) ---
+            else if (strncmp(hmi_input, "CMD_MACRO_1", 11) == 0) {
+                hid_run_macro(1); dwin_write_text(0x0098, "[+] Executing Macro 1 (Work Mode)\n");
+            }
+            else if (strncmp(hmi_input, "CMD_MACRO_2", 11) == 0) {
+                hid_run_macro(2); dwin_write_text(0x0098, "[+] Executing Macro 2 (Gaming Mode)\n");
+            }
+            else if (strncmp(hmi_input, "CMD_MACRO_3", 11) == 0) {
+                hid_run_macro(3); dwin_write_text(0x0098, "[+] Executing Macro 3 (Dev Mode)\n");
+            }
+            else if (strncmp(hmi_input, "CMD_MACRO_4", 11) == 0) {
+                hid_run_macro(4); dwin_write_text(0x0098, "[+] Executing Custom Macro\n");
+            }
+            // --- STREAM DECK: ĐIỀU CHỈNH ÂM LƯỢNG / ĐỘ SÁNG ---
+            else if (strncmp(hmi_input, "VOL_VAL:", 8) == 0) {
+                uint8_t vol = atoi(hmi_input + 8);
+                hid_set_volume(vol);
+            }
+            else if (strncmp(hmi_input, "BRIGHT_VAL:", 11) == 0) {
+                uint8_t bright = atoi(hmi_input + 11);
+                hid_set_brightness(bright);
+            }
             // -------------------------------------------------
             else {
                 // Các chuỗi gõ phím thông thường (IP, Username) sẽ gửi sang C5 để lưu

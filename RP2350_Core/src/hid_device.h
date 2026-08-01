@@ -127,4 +127,49 @@ void hid_touchpad_release() {
     prev_distance = -1.0;
 }
 
+// Gửi mã điều khiển âm lượng hệ thống (vol_val từ 0 đến 100)
+void hid_set_volume(uint8_t vol_val) {
+    static uint8_t prev_vol = 50;
+    // So sánh giá trị cũ và mới để gửi phím tăng/giảm âm lượng tương ứng
+    if (vol_val > prev_vol) {
+        // tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &vol_inc_keycode, 2);
+    } else if (vol_val < prev_vol) {
+        // tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &vol_dec_keycode, 2);
+    }
+    prev_vol = vol_val;
+}
+
+// Gửi mã điều khiển độ sáng màn hình
+void hid_set_brightness(uint8_t brightness_val) {
+    static uint8_t prev_bright = 50;
+    if (brightness_val > prev_bright) {
+        // tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &brightness_inc_keycode, 2);
+    } else if (brightness_val < prev_bright) {
+        // tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &brightness_dec_keycode, 2);
+    }
+    prev_bright = brightness_val;
+}
+
+// Thực thi chuỗi Macro phím tắt tự động (Multi-Action)
+void hid_run_macro(uint8_t macro_id) {
+    switch (macro_id) {
+        case 1: // Work Mode: Mở Chrome + GitHub
+            // B1: Giả lập phím Win + R (Mở hộp thoại Run)
+            // B2: Gõ chuỗi ký tự "chrome https://github.com"
+            // B3: Nhấn phím Enter
+            break;
+        case 2: // Game Mode: Mở Discord & Steam
+            // B1: Giả lập phím Win + R
+            // B2: Gõ chuỗi "discord" và ấn Enter
+            break;
+        case 3: // Dev Mode: Mở Visual Studio Code và Local Terminal
+            // B1: Giả lập phím Win + R
+            // B2: Gõ chuỗi "cmd" và ấn Enter
+            // B3: Gõ chuỗi "code" và ấn Enter
+            break;
+        case 4: // Custom Macro: Do người dùng cấu hình
+            break;
+    }
+}
+
 #endif // HID_DEVICE_H

@@ -40,3 +40,13 @@ Khi thiết kế nút bấm trên màn hình (Ví dụ nút Bắn Hồng Ngoại
 - `0x0220`: Cờ Tap (Nhấp thả nhanh). Gửi `1` = Click Trái, gửi `2` = Click Phải.
 - `0x0224`: Lựa chọn Hệ điều hành (Gửi `0` = Win, `1` = Mac, `2` = Linux, `3` = Android). 
 *(Hướng dẫn DGUS thiết kế Pop-up Đổi OS: Để tránh tốn diện tích, bạn tạo 1 nút bấm nhỏ hình Bánh răng. Khi bấm vào, cấu hình "Popup Window" hiện ra một cái bảng nhỏ chứa 4 nút OS. Bấm xong 1 nút thì tự động gọi lệnh Close Popup).*
+
+## 5. Chế độ Stream Deck Mode (Macro & Control Pad)
+- `CMD_MACRO_1`: Phím tắt Work Mode (Mở Chrome, GitHub).
+- `CMD_MACRO_2`: Phím tắt Game Mode (Mở Steam, Discord).
+- `CMD_MACRO_3`: Phím tắt Dev Mode (Mở VS Code, Local Terminal).
+- `CMD_MACRO_4`: Phím tắt tự do (Người dùng gán phím tắt tùy chỉnh).
+
+- `0x0300`: Giá trị thanh trượt chỉnh Âm lượng hệ thống (HMI ghi giá trị 0-100).
+- `0x0302`: Giá trị thanh trượt chỉnh Độ sáng màn hình (HMI ghi giá trị 0-100).
+- `0x0310`: Nhận lệnh tự động chuyển Trang hiển thị (Smart Profile) từ Máy tính gửi xuống RP2350 qua USB để tự động đổi giao diện HMI tùy theo phần mềm đang active.
