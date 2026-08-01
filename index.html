@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>HackerHMI OTA Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #0b0f19; 
+            color: #f3f4f6; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            margin: 0; 
+        }
+        .container { 
+            background: rgba(255, 255, 255, 0.03); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            padding: 2.5rem; 
+            border-radius: 16px; 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); 
+            backdrop-filter: blur(8px); 
+            width: 420px; 
+            text-align: center; 
+        }
+        h1 { 
+            font-size: 1.8rem; 
+            margin-bottom: 0.5rem; 
+            background: linear-gradient(135deg, #a78bfa, #818cf8); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+        }
+        p { 
+            color: #9ca3af; 
+            font-size: 0.9rem; 
+            margin-bottom: 2rem; 
+        }
+        .upload-box { 
+            border: 2px dashed rgba(255, 255, 255, 0.15); 
+            border-radius: 12px; 
+            padding: 2rem 1rem; 
+            margin-bottom: 1.5rem; 
+            cursor: pointer; 
+            transition: all 0.3s ease; 
+            background: rgba(255, 255, 255, 0.01); 
+        }
+        .upload-box:hover { 
+            border-color: #818cf8; 
+            background: rgba(129, 140, 248, 0.05); 
+        }
+        .upload-box svg { 
+            width: 48px; 
+            height: 48px; 
+            fill: none; 
+            stroke: #818cf8; 
+            stroke-width: 1.5; 
+            margin-bottom: 1rem; 
+        }
+        input[type="file"] { 
+            display: none; 
+        }
+        .btn { 
+            background: linear-gradient(135deg, #6366f1, #4f46e5); 
+            color: white; 
+            border: none; 
+            padding: 0.75rem 1.5rem; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            width: 100%; 
+            transition: opacity 0.2s; 
+        }
+        .btn:hover { 
+            opacity: 0.9; 
+        }
+        .progress-wrapper { 
+            display: none; 
+            margin-top: 1.5rem; 
+            text-align: left; 
+        }
+        .progress-bar { 
+            background: rgba(255, 255, 255, 0.08); 
+            border-radius: 9999px; 
+            height: 8px; 
+            overflow: hidden; 
+            margin-top: 0.5rem; 
+        }
+        .progress-fill { 
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6); 
+            width: 0%; 
+            height: 100%; 
+            transition: width 0.1s ease; 
+        }
+        .status-text { 
+            font-size: 0.8rem; 
+            color: #9ca3af; 
+            margin-top: 0.25rem; 
+            display: flex; 
+            justify-content: space-between; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HackerHMI OTA Control</h1>
+        <p>Chọn hệ chip đích và tải lên file Firmware để tiến hành nâng cấp không dây.</p>
+        <form id="uploadForm">
+            <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+                <svg viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"/>
+                </svg>
+                <div id="uploadText">Kéo thả hoặc Click để chọn file .bin</div>
+                <input type="file" id="fileInput" name="update" accept=".bin" onchange="fileSelected()">
+            </div>
+            
+            <select id="chipSelect" class="btn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); margin-bottom: 1.5rem; outline: none;">
+                <option value="esp32" style="background:#0b0f19;">Nâng cấp ESP32-C5 (Wi-Fi SoC)</option>
+                <option value="rp2350" style="background:#0b0f19;">Nâng cấp RP2350 (HMI Core via SWD)</option>
+            </select>
+            
+            <button type="button" class="btn" onclick="startUpload()">Khởi động Nâng cấp (Upload)</button>
+        </form>
+
+        <div class="progress-wrapper" id="progressWrapper">
+            <div>Đang truyền và flash dữ liệu...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="status-text">
+                <span id="percentText">0%</span>
+                <span id="statusInfo">Đang xử lý...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function fileSelected() {
+            const file = document.getElementById('fileInput').files[0];
+            if(file) {
+                document.getElementById('uploadText').innerText = file.name + ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
+            }
+        }
+
+        function startUpload() {
+            const file = document.getElementById('fileInput').files[0];
+            const chip = document.getElementById('chipSelect').value;
+            if(!file) { 
+                alert('Vui lòng chọn file .bin trước!'); 
+                return; 
+            }
+            
+            document.getElementById('progressWrapper').style.display = 'block';
+            
+            // Giả lập tiến trình upload để chạy kiểm thử UI offline trên trình duyệt
+            let pct = 0;
+            const interval = setInterval(() => {
+                pct += 5;
+                document.getElementById('progressFill').style.width = pct + '%';
+                document.getElementById('percentText').innerText = pct + '%';
+                
+                if (pct >= 100) {
+                    clearInterval(interval);
+                    document.getElementById('statusInfo').innerText = 'Hoàn tất! Đang khởi động lại mạch...';
+                    setTimeout(() => {
+                        alert('Nâng cấp thành công! Hệ thống đang tự động Reboot. (UI Test Mode)');
+                    }, 200);
+                }
+            }, 100);
+        }
+    </script>
+</body>
+</html>
