@@ -20,6 +20,35 @@
 #define GPIO_SCLK 18
 #define GPIO_CS   17
 
+// Thư viện Bluetooth LE
+#include "esp_bt.h"
+#include "esp_gap_ble_api.h"
+#include "esp_gatts_api.h"
+#include "esp_bt_main.h"
+#include "esp_bt_device.h"
+
+// Cấu hình dịch vụ BLE UART (NUS)
+#define BLE_SERVICE_UUID     0x0001
+#define BLE_CHAR_UUID_RX     0x0002 // Cổng nhận (Write)
+#define BLE_CHAR_UUID_TX     0x0003 // Cổng gửi (Notify)
+
+static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
+static void gap_event_handler(esp_ble_gap_cb_event_t event, esp_ble_gap_cb_param_t *param);
+
+static uint8_t raw_adv_data[] = {
+    0x02, 0x01, 0x06,
+    0x0e, 0x09, 'H', 'a', 'c', 'k', 'e', 'r', 'H', 'M', 'I', '_', 'B', 'L', 'E'
+};
+
+static esp_ble_adv_params_t adv_params = {
+    .adv_int_min        = 0x20,
+    .adv_int_max        = 0x40,
+    .adv_type           = ADV_TYPE_IND,
+    .own_addr_type      = BLE_ADDR_TYPE_PUBLIC,
+    .channel_map        = ADV_CHNL_ALL,
+    .adv_filter_policy  = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
+};
+
 static const char *TAG = "HACKER_NET";
 
 // Biến trạng thái Wi-Fi
@@ -33,6 +62,71 @@ char wifi_pass[64] = "";
 char target_ip[32] = "";
 char target_user[32] = "";
 char target_pass[64] = "";
+
+// Hàm chuyển tiếp dữ liệu nhận từ BLE sang RP2350
+void forward_to_rp2350(const char* payload) {
+    ESP_LOGI(TAG, "[BLE -> SPI] Chuyển tiếp tên App nhận từ Bluetooth sang RP2350: %s", payload);
+    // TODO: Viết gói tin đẩy qua đường SPI Master/Slave đến RP2350
+}
+
+static void gap_event_handler(esp_ble_gap_cb_event_t event, esp_ble_gap_cb_param_t *param) {
+    switch (event) {
+        case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT:
+            esp_ble_gap_start_advertising(&adv_params);
+            break;
+        default:
+            break;
+    }
+}
+
+static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param) {
+    switch (event) {
+        case ESP_GATTS_REG_EVT:
+            esp_ble_gap_set_device_name("HackerHMI_BLE");
+            esp_ble_gap_config_adv_data_raw(raw_adv_data, sizeof(raw_adv_data));
+            
+            esp_gatt_srvc_id_t service_id = {
+                .is_primary = true,
+                .id.uuid.len = ESP_UUID_LEN_16,
+                .id.uuid.uuid.uuid16 = BLE_SERVICE_UUID,
+            };
+            esp_ble_gatts_create_service(gatts_if, &service_id, 4);
+            break;
+        case ESP_GATTS_CREATE_EVT:
+            esp_ble_gatts_start_service(param->create.service_handle);
+            esp_bt_uuid_t char_uuid = {
+                .len = ESP_UUID_LEN_16,
+                .uuid.uuid.uuid16 = BLE_CHAR_UUID_RX,
+            };
+            esp_ble_gatts_add_char(param->create.service_handle, &char_uuid,
+                                   ESP_GATT_PERM_WRITE,
+                                   ESP_GATT_CHAR_PROP_BIT_WRITE,
+                                   NULL, NULL);
+            break;
+        case ESP_GATTS_WRITE_EVT:
+            if (param->write.len > 0) {
+                char payload[64] = {0};
+                memcpy(payload, param->write.value, param->write.len < 63 ? param->write.len : 63);
+                ESP_LOGI(TAG, "Nhận lệnh đổi App qua BLE NUS: %s", payload);
+                forward_to_rp2350(payload);
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+void init_ble_nus() {
+    ESP_LOGI(TAG, "Khởi tạo Bluetooth LE NUS...");
+    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    esp_bt_controller_init(&bt_cfg);
+    esp_bt_controller_enable(ESP_BT_MODE_BLE);
+    esp_bluedroid_init();
+    esp_bluedroid_enable();
+    esp_ble_gatts_register_callback(gatts_event_handler);
+    esp_ble_gap_register_callback(gap_event_handler);
+    esp_ble_gatts_app_register(0);
+}
 
 // Hàm giao tiếp SPI Slave với RP2350 (HMI master) để nhận cấu hình
 void listen_to_rp2350_for_config() {
@@ -249,6 +343,9 @@ void app_main(void)
     
     // 2. Tải cấu hình động
     load_config_from_nvs();
+
+    // 3. Khởi tạo Bluetooth LE cho chế độ Stream Deck Smart Profile
+    init_ble_nus();
 
     if (strlen(target_ip) == 0 || strlen(wifi_ssid) == 0) {
         // HMI trống, chờ người dùng bấm dấu [+] trên màn hình và gõ phím
