@@ -14,6 +14,7 @@
 #include "radio_cc1101.h"
 #include "rfid_nfc.h"
 #include "ir_blaster.h"
+#include "esp32_flasher.h"
 
 // Khai báo SPI0 kết nối với ESP32-C5
 #define C5_SPI_PORT spi0
@@ -63,6 +64,7 @@ int main() {
     cc1101_init(433.92); // Mặc định tần số mở cổng 433MHz
     rfid_nfc_init();
     ir_blaster_init();
+    esp32_flasher_init();
     
     dwin_write_text(0x0098, "HackerHMI - Booting RP2350 Core...\n");
     dwin_write_text(0x0098, "[+] All Hacker Modules Loaded.\n");
@@ -120,6 +122,17 @@ int main() {
             else if (strncmp(hmi_input, "BRIGHT_VAL:", 11) == 0) {
                 uint8_t bright = atoi(hmi_input + 11);
                 hid_set_brightness(bright);
+            }
+            // --- BẮT ĐẦU CHẾ ĐỘ NẠP FIRMWARE CHO ESP32-C5 ---
+            else if (strncmp(hmi_input, "CMD_FLASH_MODE", 14) == 0) {
+                dwin_write_text(0x0098, "\n[!] ENTERING USB-TO-UART FLASH MODE...\n");
+                dwin_write_text(0x0098, "[!] Connect PC to RP2350 USB and run esptool.\n");
+                
+                // Kích hoạt chuỗi reset bootloader trên chân cứng EN/IO9
+                esp_enter_bootloader();
+                
+                // Khởi chạy vòng lặp vô tận cầu nối dữ liệu
+                esp_uart_bridge_task();
             }
             // -------------------------------------------------
             else {
