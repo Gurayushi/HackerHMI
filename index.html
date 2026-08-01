@@ -112,13 +112,14 @@
                 <svg viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"/>
                 </svg>
-                <div id="uploadText">Kéo thả hoặc Click để chọn file .bin</div>
-                <input type="file" id="fileInput" name="update" accept=".bin" onchange="fileSelected()">
+                <div id="uploadText">Kéo thả hoặc Click để chọn file .bin / .icl</div>
+                <input type="file" id="fileInput" name="update" accept=".bin,.icl" onchange="fileSelected()">
             </div>
             
             <select id="chipSelect" class="btn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); margin-bottom: 1.5rem; outline: none;">
                 <option value="esp32" style="background:#0b0f19;">Nâng cấp ESP32-C5 (Wi-Fi SoC)</option>
                 <option value="rp2350" style="background:#0b0f19;">Nâng cấp RP2350 (HMI Core via SWD)</option>
+                <option value="dwin" style="background:#0b0f19;">Nâng cấp Giao diện DWIN HMI (via UART)</option>
             </select>
             
             <button type="button" class="btn" onclick="startUpload()">Khởi động Nâng cấp (Upload)</button>
@@ -148,27 +149,56 @@
             const file = document.getElementById('fileInput').files[0];
             const chip = document.getElementById('chipSelect').value;
             if(!file) { 
-                alert('Vui lòng chọn file .bin trước!'); 
+                alert('Vui lòng chọn file trước!'); 
                 return; 
             }
             
             document.getElementById('progressWrapper').style.display = 'block';
             
-            // Giả lập tiến trình upload để chạy kiểm thử UI offline trên trình duyệt
-            let pct = 0;
-            const interval = setInterval(() => {
-                pct += 5;
-                document.getElementById('progressFill').style.width = pct + '%';
-                document.getElementById('percentText').innerText = pct + '%';
-                
-                if (pct >= 100) {
-                    clearInterval(interval);
-                    document.getElementById('statusInfo').innerText = 'Hoàn tất! Đang khởi động lại mạch...';
-                    setTimeout(() => {
-                        alert('Nâng cấp thành công! Hệ thống đang tự động Reboot. (UI Test Mode)');
-                    }, 200);
+            // Định cấu hình URL thực tế tùy theo chip đích
+            let url = '/update_esp32';
+            if (chip === 'rp2350') url = '/update_rp2350';
+            else if (chip === 'dwin') url = '/update_dwin';
+
+            // Nếu đang chạy offline kiểm thử UI trên PC
+            if (window.location.protocol === 'file:') {
+                let pct = 0;
+                const interval = setInterval(() => {
+                    pct += 5;
+                    document.getElementById('progressFill').style.width = pct + '%';
+                    document.getElementById('percentText').innerText = pct + '%';
+                    
+                    if (pct >= 100) {
+                        clearInterval(interval);
+                        document.getElementById('statusInfo').innerText = 'Hoàn tất! Đang khởi động lại mạch...';
+                        setTimeout(() => {
+                            alert('Nâng cấp thành công! Hệ thống đang tự động khởi chạy lại. (UI Test Mode)');
+                        }, 200);
+                    }
+                }, 100);
+                return;
+            }
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', url, true);
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const pct = Math.round((e.loaded / e.total) * 100);
+                    document.getElementById('progressFill').style.width = pct + '%';
+                    document.getElementById('percentText').innerText = pct + '%';
                 }
-            }, 100);
+            };
+            xhr.onload = function() {
+                if(xhr.status === 200) {
+                    document.getElementById('statusInfo').innerText = 'Nâng cấp thành công!';
+                    alert('Nâng cấp thành công!');
+                } else {
+                    alert('Lỗi nạp OTA: ' + xhr.responseText);
+                }
+            };
+            const formData = new FormData();
+            formData.append('update', file);
+            xhr.send(formData);
         }
     </script>
 </body>

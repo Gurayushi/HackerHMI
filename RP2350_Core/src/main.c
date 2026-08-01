@@ -17,11 +17,12 @@
 #include "esp32_flasher.h"
 
 // Khai báo SPI0 kết nối với ESP32-C5
-#define C5_SPI_PORT spi0
-#define C5_PIN_MISO 16
-#define C5_PIN_CS   17
-#define C5_PIN_SCK  18
-#define C5_PIN_MOSI 19
+#define C5_SPI_PORT      spi0
+#define C5_PIN_MISO      16
+#define C5_PIN_CS        17
+#define C5_PIN_SCK       18
+#define C5_PIN_MOSI      19
+#define C5_PIN_HANDSHAKE 22
 
 // Biến toàn cục chứa bộ đệm Terminal 30KB
 RingBuffer terminal_buffer;
@@ -36,6 +37,11 @@ void init_spi_for_c5() {
     gpio_init(C5_PIN_CS);
     gpio_set_dir(C5_PIN_CS, GPIO_OUT);
     gpio_put(C5_PIN_CS, 1);
+
+    // Khởi tạo chân Handshake lắng nghe ngắt từ ESP32-C5
+    gpio_init(C5_PIN_HANDSHAKE);
+    gpio_set_dir(C5_PIN_HANDSHAKE, GPIO_IN);
+    gpio_pull_up(C5_PIN_HANDSHAKE);
 }
 
 // Hàm đẩy Cấu hình (Nhập từ bàn phím HMI) sang ESP32-C5 để lưu NVS
@@ -150,6 +156,28 @@ int main() {
             dwin_write_text(0x0098, "Thẻ từ vừa quét: ");
             dwin_write_text(0x0098, rfid_uid);
             dwin_write_text(0x0098, "\n");
+        }
+        
+        // LUỒNG 4: Nhận dữ liệu phản hồi từ ESP32-C5 qua đường truyền SPI
+        if (gpio_get(C5_PIN_HANDSHAKE) == 0) { // ESP32-C5 kéo chân Handshake xuống LOW để báo có tin nhắn
+            uint8_t spi_rx_buf[128] = {0};
+            
+            // Kéo CS xuống LOW để bắt đầu đọc giao tiếp SPI
+            gpio_put(C5_PIN_CS, 0);
+            spi_read_blocking(C5_SPI_PORT, 0x00, spi_rx_buf, sizeof(spi_rx_buf));
+            gpio_put(C5_PIN_CS, 1);
+            
+            // Xử lý các lệnh nhận được từ ESP32-C5
+            if (strncmp((char*)spi_rx_buf, "START_DWIN_FLASH", 16) == 0) {
+                dwin_write_text(0x0098, "[!] Nhận lệnh cập nhật giao diện HMI qua Wi-Fi...\n");
+                // RP2350 tạm thời dừng lại để nhận dữ liệu ảnh từ ESP32 và ghi xuống Flash của DWIN
+            }
+            else if (strncmp((char*)spi_rx_buf, "APP:", 4) == 0) {
+                // Nhận lệnh chuyển đổi giao diện Smart Profile qua BLE
+                dwin_write_text(0x0098, "[+] BLE Smart Profile Event: ");
+                dwin_write_text(0x0098, (char*)spi_rx_buf + 4);
+                dwin_write_text(0x0098, "\n");
+            }
         }
         
         sleep_ms(5);

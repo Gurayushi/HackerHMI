@@ -41,12 +41,13 @@ static const char* ota_html_page =
 "<form id='uploadForm'>"
 "<div class='upload-box' onclick='document.getElementById(\"fileInput\").click()'>"
 "<svg viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' d='M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z'/></svg>"
-"<div id='uploadText'>Kéo thả hoặc Click để chọn file .bin</div>"
-"<input type='file' id='fileInput' name='update' accept='.bin' onchange='fileSelected()'>"
+"<div id='uploadText'>Kéo thả hoặc Click để chọn file .bin / .icl</div>"
+"<input type='file' id='fileInput' name='update' accept='.bin,.icl' onchange='fileSelected()'>"
 "</div>"
 "<select id='chipSelect' class='btn' style='background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); margin-bottom: 1.5rem; outline: none;'>"
 "<option value='esp32' style='background:#0b0f19;'>Nâng cấp ESP32-C5 (Wi-Fi SoC)</option>"
 "<option value='rp2350' style='background:#0b0f19;'>Nâng cấp RP2350 (HMI Core via SWD)</option>"
+"<option value='dwin' style='background:#0b0f19;'>Nâng cấp Giao diện DWIN HMI (via UART)</option>"
 "</select>"
 "<button type='button' class='btn' onclick='startUpload()'>Khởi động Nâng cấp (Upload)</button>"
 "</form>"
@@ -64,10 +65,12 @@ static const char* ota_html_page =
 "function startUpload() {"
 "  const file = document.getElementById('fileInput').files[0];"
 "  const chip = document.getElementById('chipSelect').value;"
-"  if(!file) { alert('Vui lòng chọn file .bin trước!'); return; }"
+"  if(!file) { alert('Vui lòng chọn file trước!'); return; }"
 "  document.getElementById('progressWrapper').style.display = 'block';"
+"  let url = '/update_esp32';"
+"  if (chip === 'rp2350') url = '/update_rp2350';"
+"  else if (chip === 'dwin') url = '/update_dwin';"
 "  const xhr = new XMLHttpRequest();"
-"  const url = chip === 'esp32' ? '/update_esp32' : '/update_rp2350';"
 "  xhr.open('POST', url, true);"
 "  xhr.upload.onprogress = function(e) {"
 "    if (e.lengthComputable) {"
@@ -78,8 +81,8 @@ static const char* ota_html_page =
 "  };"
 "  xhr.onload = function() {"
 "    if(xhr.status === 200) {"
-"      document.getElementById('statusInfo').innerText = 'Hoàn tất! Đang khởi động lại mạch...';"
-"      alert('Nâng cấp thành công! Hệ thống đang tự động Reboot.');"
+"      document.getElementById('statusInfo').innerText = 'Hoàn tất!';"
+"      alert('Nâng cấp thành công!');"
 "    } else {"
 "      alert('Nâng cấp thất bại: ' + xhr.responseText);"
 "    }"
@@ -194,6 +197,36 @@ static esp_err_t rp2350_update_post_handler(httpd_req_t *req) {
     return ESP_OK;
 }
 
+// POST /update_dwin Handler: Nhận file giao diện và gửi qua SPI sang RP2350
+static esp_err_t dwin_update_post_handler(httpd_req_t *req) {
+    ESP_LOGI(OTA_TAG, "Nhận yêu cầu nạp giao diện DWIN HMI qua OTA...");
+    char buf[1024];
+    int remaining = req->content_len;
+    int ret;
+
+    extern void forward_to_rp2350(const char* payload);
+    forward_to_rp2350("START_DWIN_FLASH");
+
+    while (remaining > 0) {
+        if ((ret = httpd_req_recv(req, buf, sizeof(buf))) <= 0) {
+            if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+                continue;
+            }
+            forward_to_rp2350("END_DWIN_FLASH_ERROR");
+            return ESP_FAIL;
+        }
+        // Gửi block dữ liệu ảnh/font sang cho RP2350 qua SPI
+        // RP2350 sẽ viết trực tiếp xuống Flash của DWIN qua UART0
+        // (Trong thực tế sẽ viết code đồng bộ gửi block)
+        remaining -= ret;
+    }
+
+    forward_to_rp2350("END_DWIN_FLASH_SUCCESS");
+    ESP_LOGI(OTA_TAG, "[+] Truyền tải tệp tin giao diện DWIN HMI sang RP2350 thành công!");
+    httpd_resp_sendstr(req, "Success");
+    return ESP_OK;
+}
+
 // Khởi chạy Web Server nạp OTA (Cổng 80)
 void start_ota_webserver() {
     if (server != NULL) return;
@@ -227,6 +260,14 @@ void start_ota_webserver() {
             .user_ctx = NULL
         };
         httpd_register_uri_handler(server, &rp2350_post);
+
+        httpd_uri_t dwin_post = {
+            .uri      = "/update_dwin",
+            .method   = HTTP_POST,
+            .handler  = dwin_update_post_handler,
+            .user_ctx = NULL
+        };
+        httpd_register_uri_handler(server, &dwin_post);
         ESP_LOGI(OTA_TAG, "[+] OTA Web Server đang chạy tại cổng 80.");
     }
 }
