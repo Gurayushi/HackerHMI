@@ -2,19 +2,19 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>HackerHMI OTA Dashboard</title>
+    <title>HackerHMI OTA Neon Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #080c14;
-            --container-bg: rgba(13, 20, 35, 0.45);
-            --border-color: rgba(255, 255, 255, 0.06);
+            --bg-color: #030307;
+            --container-bg: rgba(6, 6, 12, 0.85);
+            --border-color: rgba(139, 92, 246, 0.15);
             --text-primary: #f3f4f6;
-            --text-secondary: #9ca3af;
-            --accent-purple: #8b5cf6;
-            --accent-blue: #3b82f6;
-            --glow-color: rgba(99, 102, 241, 0.25);
+            --text-secondary: #a78bfa;
+            --accent-neon: #bc39fa;
+            --accent-glow: rgba(188, 57, 250, 0.5);
+            --neon-blue: #3b82f6;
         }
 
         body { 
@@ -27,38 +27,56 @@
             justify-content: center; 
             min-height: 100vh; 
             margin: 0;
+            overflow-x: hidden;
             background-image: 
-                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.08) 0px, transparent 50%);
+                radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(188, 57, 250, 0.12) 0%, transparent 40%);
         }
 
         .container { 
             background: var(--container-bg); 
-            border: 1px solid var(--border-color); 
+            border: 2px solid var(--border-color); 
             padding: 3rem 2.5rem; 
             border-radius: 24px; 
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); 
-            backdrop-filter: blur(16px); 
+            box-shadow: 
+                0 0 30px rgba(139, 92, 246, 0.15),
+                0 15px 50px rgba(0, 0, 0, 0.8),
+                inset 0 0 15px rgba(139, 92, 246, 0.1); 
+            backdrop-filter: blur(20px); 
             width: 480px; 
             text-align: center;
+            position: relative;
+            z-index: 10;
             transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .container:hover {
+            border-color: rgba(188, 57, 250, 0.4);
+            box-shadow: 
+                0 0 40px rgba(188, 57, 250, 0.25),
+                0 15px 50px rgba(0, 0, 0, 0.9),
+                inset 0 0 20px rgba(188, 57, 250, 0.15); 
         }
 
         h1 { 
             font-size: 2.2rem; 
             font-weight: 700;
             margin: 0 0 0.5rem 0; 
-            background: linear-gradient(135deg, #c084fc, #6366f1); 
+            background: linear-gradient(135deg, #f472b6, #c084fc, #6366f1); 
             -webkit-background-clip: text; 
             -webkit-text-fill-color: transparent; 
             letter-spacing: -0.03em;
+            text-shadow: 0 0 20px rgba(188, 57, 250, 0.3);
         }
 
         .subtitle { 
             color: var(--text-secondary); 
             font-size: 0.95rem; 
             margin-bottom: 2.5rem; 
-            font-weight: 300;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            text-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
         }
 
         /* 3 Nút lựa chọn (Cards) */
@@ -70,8 +88,8 @@
         }
 
         .option-card {
-            background: rgba(255, 255, 255, 0.015);
-            border: 1.5px solid rgba(255, 255, 255, 0.04);
+            background: rgba(6, 6, 12, 0.6);
+            border: 1.5px solid rgba(139, 92, 246, 0.2);
             border-radius: 14px;
             padding: 1.2rem;
             text-align: left;
@@ -81,23 +99,14 @@
             align-items: center;
             gap: 1.2rem;
             position: relative;
-            overflow: hidden;
         }
 
-        .option-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 4px; height: 100%;
-            background: transparent;
-            transition: background-color 0.3s ease;
-        }
-
-        /* Hiệu ứng di chuột vào thẻ */
+        /* Hiệu ứng di chuột vào thẻ - Neon Glow */
         .option-card:hover {
-            background: rgba(255, 255, 255, 0.04);
-            border-color: rgba(99, 102, 241, 0.3);
-            transform: translateY(-3px) scale(1.01);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            background: rgba(139, 92, 246, 0.05);
+            border-color: #c084fc;
+            transform: translateY(-3px);
+            box-shadow: 0 0 15px rgba(192, 132, 252, 0.35);
         }
 
         /* Hiệu ứng bấm giữ thẻ */
@@ -106,17 +115,15 @@
         }
 
         .option-card.active {
-            background: rgba(99, 102, 241, 0.08);
-            border-color: #6366f1;
-            box-shadow: 0 0 24px rgba(99, 102, 241, 0.2);
-        }
-
-        .option-card.active::before {
-            background: linear-gradient(to bottom, #c084fc, #6366f1);
+            background: rgba(188, 57, 250, 0.08);
+            border-color: var(--accent-neon);
+            box-shadow: 
+                0 0 20px rgba(188, 57, 250, 0.4),
+                inset 0 0 8px rgba(188, 57, 250, 0.2);
         }
 
         .icon-wrapper {
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(139, 92, 246, 0.1);
             border-radius: 10px;
             width: 44px;
             height: 44px;
@@ -125,32 +132,34 @@
             justify-content: center;
             flex-shrink: 0;
             transition: all 0.3s ease;
+            border: 1px solid rgba(139, 92, 246, 0.2);
         }
 
         .option-card:hover .icon-wrapper {
-            transform: rotate(5deg) scale(1.05);
-            background: rgba(255, 255, 255, 0.06);
+            transform: rotate(8deg) scale(1.08);
+            background: rgba(188, 57, 250, 0.2);
+            border-color: #c084fc;
+            box-shadow: 0 0 8px rgba(188, 57, 250, 0.4);
         }
 
         .option-card.active .icon-wrapper {
-            background: rgba(99, 102, 241, 0.18);
+            background: rgba(188, 57, 250, 0.25);
+            border-color: var(--accent-neon);
+            box-shadow: 0 0 10px rgba(188, 57, 250, 0.5);
         }
 
         .icon-wrapper svg {
             width: 22px;
             height: 22px;
-            stroke: var(--text-secondary);
+            stroke: #a78bfa;
             stroke-width: 1.5;
             fill: none;
             transition: all 0.3s ease;
         }
 
-        .option-card:hover .icon-wrapper svg {
-            stroke: #a5b4fc;
-        }
-
         .option-card.active .icon-wrapper svg {
-            stroke: #c084fc;
+            stroke: #f472b6;
+            filter: drop-shadow(0 0 3px rgba(244, 114, 182, 0.6));
         }
 
         .option-info {
@@ -163,72 +172,80 @@
             font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 0.2rem;
-            transition: color 0.3s;
+            transition: all 0.3s;
         }
 
         .option-card:hover .option-title {
-            color: white;
+            color: #fff;
+            text-shadow: 0 0 8px rgba(255,255,255,0.6);
+        }
+
+        .option-card.active .option-title {
+            color: #fff;
+            text-shadow: 0 0 10px var(--accent-glow);
         }
 
         .option-desc {
             font-size: 0.8rem;
-            color: var(--text-secondary);
+            color: #9ca3af;
             font-weight: 300;
         }
 
-        /* Vùng thả file */
+        /* Vùng thả file - Neon Style */
         .upload-box { 
-            border: 2px dashed rgba(255, 255, 255, 0.12); 
+            border: 2px dashed rgba(188, 57, 250, 0.3); 
             border-radius: 16px; 
             padding: 2.2rem 1rem; 
             margin-bottom: 2rem; 
             cursor: pointer; 
             transition: all 0.3s ease; 
-            background: rgba(255, 255, 255, 0.005); 
+            background: rgba(139, 92, 246, 0.01); 
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
         .upload-box:hover { 
-            border-color: #6366f1; 
-            background: rgba(99, 102, 241, 0.03);
-            box-shadow: 0 0 15px rgba(99, 102, 241, 0.05);
+            border-color: var(--accent-neon); 
+            background: rgba(188, 57, 250, 0.04);
+            box-shadow: 0 0 20px rgba(188, 57, 250, 0.2);
         }
 
         .upload-box svg { 
             width: 42px; 
             height: 42px; 
             fill: none; 
-            stroke: var(--text-secondary); 
+            stroke: #a78bfa; 
             stroke-width: 1.5; 
             margin-bottom: 0.8rem; 
             transition: all 0.3s ease;
         }
 
         .upload-box:hover svg {
-            stroke: #c084fc;
-            transform: translateY(-2px);
+            stroke: var(--accent-neon);
+            transform: translateY(-3px);
+            filter: drop-shadow(0 0 5px var(--accent-glow));
         }
 
         #uploadText {
             font-size: 0.9rem;
-            color: var(--text-secondary);
+            color: #9ca3af;
             font-weight: 400;
-            transition: color 0.3s;
+            transition: all 0.3s;
         }
 
         .upload-box:hover #uploadText {
-            color: var(--text-primary);
+            color: #fff;
+            text-shadow: 0 0 5px rgba(255,255,255,0.4);
         }
 
         input[type="file"] { 
             display: none; 
         }
 
-        /* Nút nạp code */
+        /* Nút nạp code - Neon Gradient */
         .btn { 
-            background: linear-gradient(135deg, #6366f1, #4f46e5); 
+            background: linear-gradient(135deg, #c084fc, #8b5cf6, #4f46e5); 
             color: white; 
             border: none; 
             padding: 0.95rem 1.5rem; 
@@ -239,16 +256,17 @@
             cursor: pointer; 
             width: 100%; 
             transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
             position: relative;
             overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .btn::after {
             content: '';
             position: absolute;
             top: 0; left: -50%; width: 200%; height: 100%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0) 100%);
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0) 100%);
             transform: skewX(-25deg);
             transition: 0.75s;
         }
@@ -259,12 +277,15 @@
 
         .btn:hover { 
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.45);
+            box-shadow: 
+                0 0 25px rgba(188, 57, 250, 0.6),
+                0 5px 15px rgba(139, 92, 246, 0.3);
+            border-color: rgba(255, 255, 255, 0.25);
         }
 
         .btn:active {
             transform: translateY(1px) scale(0.99);
-            box-shadow: 0 3px 10px rgba(99, 102, 241, 0.2);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
         }
 
         /* Tiến trình nạp (Khung chứa) */
@@ -272,11 +293,13 @@
             display: none; 
             margin-top: 2rem; 
             text-align: left; 
-            background: rgba(255, 255, 255, 0.015);
-            border: 1px solid rgba(255, 255, 255, 0.04);
+            background: rgba(6, 6, 12, 0.9);
+            border: 1.5px solid rgba(188, 57, 250, 0.3);
             border-radius: 14px;
             padding: 1.2rem;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 
+                0 0 20px rgba(188, 57, 250, 0.15),
+                inset 0 2px 4px rgba(0,0,0,0.8);
             animation: fadeIn 0.3s ease-out forwards;
         }
 
@@ -294,26 +317,26 @@
             font-weight: 500;
         }
 
-        /* Thanh tiến trình thiết kế dải màu chuyển động dạng Capsule */
+        /* Thanh tiến trình thiết kế dải màu chuyển động dạng Capsule Neon */
         .progress-bar { 
-            background: rgba(255, 255, 255, 0.05); 
+            background: rgba(255, 255, 255, 0.03); 
             border-radius: 9999px; 
             height: 10px; 
             overflow: hidden; 
             margin-top: 0.7rem; 
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+            border: 1px solid rgba(188, 57, 250, 0.2);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
         }
 
         .progress-fill { 
-            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899); 
+            background: linear-gradient(90deg, #3b82f6, #a855f7, #f472b6, #3b82f6); 
             background-size: 200% 100%;
             animation: glow-shift 2s linear infinite;
             width: 0%; 
             height: 100%; 
             border-radius: 9999px;
             transition: width 0.15s cubic-bezier(0.4, 0, 0.2, 1); 
-            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+            box-shadow: 0 0 15px rgba(188, 57, 250, 0.8);
             position: relative;
         }
 
@@ -323,11 +346,11 @@
             top: 0; left: 0; bottom: 0; right: 0;
             background-image: linear-gradient(
                 45deg, 
-                rgba(255, 255, 255, 0.15) 25%, 
+                rgba(255, 255, 255, 0.2) 25%, 
                 transparent 25%, 
                 transparent 50%, 
-                rgba(255, 255, 255, 0.15) 50%, 
-                rgba(255, 255, 255, 0.15) 75%, 
+                rgba(255, 255, 255, 0.2) 50%, 
+                rgba(255, 255, 255, 0.2) 75%, 
                 transparent 75%, 
                 transparent
             );
@@ -350,7 +373,7 @@
 
         .status-text { 
             font-size: 0.8rem; 
-            color: var(--text-secondary); 
+            color: #a78bfa; 
             margin-top: 0.5rem; 
             display: flex; 
             justify-content: space-between; 
@@ -427,6 +450,93 @@
     </div>
 
     <script>
+        // Hiệu ứng Canvas Sao băng chạy theo con trỏ chuột (Star Particle Trail)
+        const canvas = document.createElement('canvas');
+        canvas.style.position = 'fixed';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.width = '100vw';
+        canvas.style.height = '100vh';
+        canvas.style.pointerEvents = 'none';
+        canvas.style.zIndex = '1';
+        document.body.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+        let points = [];
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        window.addEventListener('mousemove', (e) => {
+            // Tạo 3 hạt sao băng nhỏ mỗi khi di chuyển chuột
+            for (let i = 0; i < 3; i++) {
+                points.push({
+                    x: e.clientX,
+                    y: e.clientY,
+                    vx: (Math.random() - 0.5) * 1.5,
+                    vy: (Math.random() - 0.5) * 1.5 - 0.5, // bay nhẹ lên trên
+                    alpha: 1,
+                    size: Math.random() * 3 + 1.5,
+                    color: `hsl(${270 + Math.random() * 40}, 100%, 75%)` // neon tím/hồng
+                });
+            }
+        });
+
+        // Hàm vẽ ngôi sao 4 cánh đại diện cho sao băng
+        function drawSpark(ctx, cx, cy, spikes, outerRadius, innerRadius, color, alpha) {
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            let step = Math.PI / spikes;
+
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = color;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < points.length; i++) {
+                let p = points[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.025; // Tốc độ biến mất
+                p.size *= 0.96;   // Thu nhỏ dần
+                
+                drawSpark(ctx, p.x, p.y, 4, p.size, p.size / 2.5, p.color, p.alpha);
+                
+                if (p.alpha <= 0 || p.size <= 0.5) {
+                    points.splice(i, 1);
+                    i--;
+                }
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
         // Hàm thay đổi giá trị lựa chọn chip đích
         function selectChip(chip) {
             document.getElementById('selectedChip').value = chip;
