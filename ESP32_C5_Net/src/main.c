@@ -14,6 +14,7 @@
 #include "libssh2.h"
 #include "driver/spi_slave.h"
 #include "driver/gpio.h"
+#include "rp2350_swd_flasher.h"
 
 #define GPIO_MOSI 19
 #define GPIO_MISO 16
@@ -329,6 +330,20 @@ void ssh_task(void *pvParameters) {
     vTaskDelete(NULL);
 }
 
+// Hàm cập nhật firmware từ xa cho RP2350 (Gọi khi có OTA file mới tải về)
+void ota_update_rp2350(const uint8_t* bin_data, size_t size) {
+    ESP_LOGI(TAG, "Bắt đầu cập nhật OTA cho chip RP2350...");
+    
+    // B1: Halt RP2350 để lấy quyền kiểm soát Core
+    rp2350_halt();
+    
+    // B2: Thực hiện xóa và ghi flash ngoài của RP2350 qua SWD
+    rp2350_flash_write(bin_data, size);
+    
+    // B3: Reset và giải phóng RP2350 để chạy code mới
+    rp2350_reboot();
+}
+
 void app_main(void)
 {
     // 1. Khởi tạo bộ nhớ NVS
@@ -346,6 +361,9 @@ void app_main(void)
 
     // 3. Khởi tạo Bluetooth LE cho chế độ Stream Deck Smart Profile
     init_ble_nus();
+
+    // 4. Khởi tạo các chân GPIO cho giao tiếp SWD nạp code cho RP2350
+    swd_init_pins();
 
     if (strlen(target_ip) == 0 || strlen(wifi_ssid) == 0) {
         // HMI trống, chờ người dùng bấm dấu [+] trên màn hình và gõ phím
