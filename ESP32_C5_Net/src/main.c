@@ -18,6 +18,7 @@
 #include "flasher/rp2350_swd_flasher.h"
 #include "ota/ota_server.h"
 #include "deauther/task_manager.h"
+#include "weather/weather_client.h"
 
 // Cấu hình các chân SPI2
 #define GPIO_MOSI 19
@@ -46,6 +47,10 @@ static bool wifi_started = false;
 static EventGroupHandle_t wifi_event_group;
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
+
+EventGroupHandle_t get_wifi_event_group(void) {
+    return wifi_event_group;
+}
 
 // Các biến cấu hình động (Sẽ được nạp từ bộ nhớ NVS)
 char wifi_ssid[32] = "";
@@ -388,9 +393,12 @@ void app_main(void)
     // Khởi chạy tác vụ cập nhật tài nguyên Dashboard định kỳ 1s
     xTaskCreate(monitor_tick_task, "monitor_tick", 4096, NULL, 5, NULL);
 
-    if (strlen(target_ip) != 0 && strlen(wifi_ssid) != 0) {
+    if (strlen(wifi_ssid) != 0) {
         wifi_init_sta();
-        xTaskCreate(&ssh_task, "ssh_task", 8192, NULL, 5, NULL);
+        weather_init();
+        if (strlen(target_ip) != 0) {
+            xTaskCreate(&ssh_task, "ssh_task", 8192, NULL, 5, NULL);
+        }
     }
     
     while (1) {

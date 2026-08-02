@@ -149,6 +149,9 @@ Màn hình DWIN HMI tương tác với RP2350 thông qua các địa chỉ biế
 | **`0x0482`** | Text (ASCII) | Write-Only | **RAM Stats:** Nhãn chỉ số RAM thời gian thực (`"RAM: xx%"`) của Monitor Task đang xem. |
 | **`0x0484`** | Text (ASCII) | Write-Only | **Disk Stats:** Nhãn chỉ số dung lượng ổ cứng (`"Disk: xx%"`) của Monitor Task đang xem. |
 | **`0x0490`** | Text (ASCII) | Write-Only | **Deauther Mode String:** Nhãn thể hiện phân loại chế độ hoạt động hiện thời của Wi-Fi. |
+| **`0x0160`** | Integer (16-bit) | Write-Only | **Weather Temperature:** Giá trị nhiệt độ thời tiết đo được bằng độ C hiển thị ở trang chủ Page 0. |
+| **`0x0162`** | Integer (16-bit) | Write-Only | **Weather Humidity:** Giá trị độ ẩm thời tiết đo được tính bằng % RH hiển thị ở trang chủ Page 0. |
+| **`0x0164`** | Variable Icon (16-bit) | Write-Only | **Weather Icon:** Biểu tượng trạng thái thời tiết hiển thị ở trang chủ Page 0 (0 = Nắng, 1 = Mây, 2 = Mưa, 3 = Dông sét). |
 | **`0x0600-0x0606`** | Variable Icon (16-bit) | Write-Only | **Device Online Status:** Chấm tròn trạng thái Online/Offline cho 4 thiết bị (1 = Green dot, 0 = Gray dot). |
 | **`0x0610-0x0616`** | Variable Icon (16-bit) | Write-Only | **Device Session Frame:** Khung sáng neon xanh dương biểu thị có tiến trình chạy ngầm (1 = Show glowing border, 0 = Hide). |
 | **`0x5000`** | Text (ASCII) | Read-Only | **Keyboard Command Input:** Vùng đệm bàn phím ảo của DWIN. Mỗi khi người dùng gõ lệnh hoặc nhập thông số cấu hình và nhấn Enter, DWIN sẽ ghi vào địa chỉ này và gửi sự kiện ngắt báo cho RP2350 đọc. |

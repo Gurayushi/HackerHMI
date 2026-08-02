@@ -92,8 +92,22 @@ void dwin_listen_keyboard_input(char* out_buffer) {
         if (data_len > 0) {
             strncpy(out_buffer, (char*)data, data_len);
             out_buffer[data_len] = '\0';
-        }
     }
+}
+
+// Hàm đẩy giá trị 16-bit Integer xuống DWIN HMI
+void dwin_write_val(uint16_t address, uint16_t value) {
+    uint8_t packet[8];
+    packet[0] = 0x5A;
+    packet[1] = 0xA5;
+    packet[2] = 0x04; // Length
+    packet[3] = 0x82; // Write Command
+    packet[4] = (address >> 8) & 0xFF;
+    packet[5] = address & 0xFF;
+    packet[6] = (value >> 8) & 0xFF;
+    packet[7] = value & 0xFF;
+    
+    uart_write_blocking(DWIN_UART_ID, packet, 8);
 }
 
 #endif // DWIN_UI_H

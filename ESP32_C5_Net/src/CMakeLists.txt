@@ -11,15 +11,19 @@ idf_component_register(
         "deauther/led.c"
         "deauther/cli.c"
         "deauther/task_manager.c"
+        "weather/weather_client.c"
     INCLUDE_DIRS 
         "."
         "deauther"
         "ota"
         "flasher"
+        "weather"
     REQUIRES
         esp_wifi
         esp_event
         nvs_flash
         driver
         ch405labs_esp_libssh2
+        esp_http_client
+        json
 )

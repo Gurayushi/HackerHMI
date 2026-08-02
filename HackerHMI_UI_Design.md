@@ -48,6 +48,10 @@ Dưới đây là bản thiết kế mockup trực quan cho **Trang chủ Dashbo
 *   **System Status indicators:**
     *   *Widget:* Variable Icon (hiển thị trạng thái kết nối)
     *   *VP Address:* `0x0150` (0 = Disconnected, 1 = Wi-Fi connected, 2 = VPN Active).
+*   **Weather Widget (Thông tin thời tiết):**
+    *   *Nhiệt độ (Temperature):* VP `0x0160` (16-bit Integer, e.g. `28` displays as `28 °C`) - Tọa độ: X=820, Y=20
+    *   *Độ ẩm (Humidity):* VP `0x0162` (16-bit Integer, e.g. `75` displays as `75 %`) - Tọa độ: X=920, Y=20
+    *   *Icon Thời tiết (Weather Icon):* VP `0x0164` (Variable Icon: 0 = Nắng, 1 = Mây, 2 = Mưa, 3 = Dông sét) - Tọa độ: X=780, Y=15
 
 ### Trang 1: Wi-Fi Deauther
 *   **Console Output Area:**

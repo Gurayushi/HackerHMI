@@ -385,6 +385,14 @@ int main() {
                 dwin_write_text(0x0400, "History Data Chunks:\n");
                 dwin_write_text(0x0400, (char*)spi_rx_buf + 9);
             }
+            else if (strncmp((char*)spi_rx_buf, "WTH:", 4) == 0) {
+                int temp, humidity, icon_id;
+                if (sscanf((char*)spi_rx_buf + 4, "%d:%d:%d", &temp, &humidity, &icon_id) == 3) {
+                    dwin_write_val(0x0160, (uint16_t)temp);
+                    dwin_write_val(0x0162, (uint16_t)humidity);
+                    dwin_write_val(0x0164, (uint16_t)icon_id);
+                }
+            }
         }
         
         sleep_ms(5);
