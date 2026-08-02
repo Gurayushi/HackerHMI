@@ -97,8 +97,8 @@ graph TD
     P0 -->|Click Sidebar 2| P2[Page 2: BadUSB & Stream Deck]
     P0 -->|Click Sidebar 3| P3[Page 3: RFID/NFC Cloner]
     P0 -->|Click Sidebar 4| P4[Page 4: RF CC1101 / IR]
-    P0 -->|Click Sidebar 5 (SSH Mode)| P8[Page 8: Device Manager]
-    P0 -->|Click Sidebar 6 (Monitor Mode)| P8
+    P0 -->|Click Sidebar 5 SSH Mode| P8[Page 8: Device Manager]
+    P0 -->|Click Sidebar 6 Monitor Mode| P8
     P0 -->|Click Sidebar 7| P7[Page 7: Task Manager]
 
     P1 -->|Press HIDE| P0
