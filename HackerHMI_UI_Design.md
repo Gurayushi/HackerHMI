@@ -20,7 +20,18 @@ Dưới đây là bản thiết kế mockup trực quan cho **Trang chủ Dashbo
     6.  *SSH Terminal* (Điều khiển console)
     7.  *Task Manager* (Quản lý đa nhiệm)
 *   **Main Header (Trên - Cao 60px):** Hiển thị thanh trạng thái kết nối Wi-Fi (SSID, RSSI), địa chỉ IP, trạng thái VPN Tailscale (neon green nếu connected), và dung lượng pin hệ thống.
-*   **Central Workspace (Giữa - 944x540px):** Vùng hiển thị động thay đổi theo từng trang tính năng được chọn.
+### Hệ màu sắc Thiết kế Neon Cyberpunk (Design Color Tokens)
+Đồng bộ theo bảng màu CSS của trạm nạp OTA `index.html`:
+
+| Thành phần | Mã màu RGB Hex | Hệ màu DWIN (RGB565) | Mô tả phong cách hiển thị |
+| :--- | :---: | :---: | :--- |
+| **Nền chính (Background)** | `#030307` | `0x0000` | Xám đen vũ trụ sâu thẳm. |
+| **Nền Card (Container)** | `#06060c` | `0x0021` | Xám mờ đục translucent. |
+| **Viền Neon Tĩnh (Border)** | `#8b5cf6` | `0x8AEF` | Neon Violet ánh sáng dịu. |
+| **Viền Sáng Active (Glow)** | `#bc39fa` | `0xBC1F` | Neon Magenta đậm nổi bật. |
+| **Chữ chính (Primary)** | `#f3f4f6` | `0xFFFF` | Trắng sáng, phản xạ cao. |
+| **Chữ phụ (Secondary)** | `#a78bfa` | `0xA47F` | Tím pastel nhẹ. |
+| **Neon Blue (Kênh vẽ/Chữ)**| `#3b82f6` | `0x3C1F` | Neon Blue sáng cho đồ thị/IP. |
 
 ---
 
@@ -106,6 +117,35 @@ Trang hiển thị danh sách các máy chủ có thể theo dõi tài nguyên v
         *   Device 2 Touch Box: `(X=520, Y=120, Rộng=350, Cao=100)`, Value = `MON_SEL:2`
         *   Device 3 Touch Box: `(X=150, Y=240, Rộng=350, Cao=100)`, Value = `MON_SEL:3`
         *   Device 4 Touch Box: `(X=520, Y=240, Rộng=350, Cao=100)`, Value = `MON_SEL:4`
+
+### Trang 5: SSH Terminal Console (Màn hình điều khiển dòng lệnh)
+Giao diện gõ lệnh từ xa cho máy chủ được lựa chọn, hỗ trợ mã màu ANSI và bộ đệm lịch sử cuộn trang:
+
+![DWIN SSH Terminal Mockup](C:\Users\gurayushi\.gemini\antigravity-ide\brain\c8e50d47-ddd0-4373-a153-ed09e9b90385\dwin_ssh_terminal_mockup_1785690884682.png)
+
+*   **Vùng hiển thị Terminal (Console Area):**
+    *   *Widget:* Text Display (ASCII)
+    *   *VP Address:* `0x0400` (được tiếp nhận dữ liệu log ring buffer từ ESP32-C5)
+    *   *Tọa độ:* X=100, Y=80, Rộng=820, Cao=400
+*   **Bàn phím ảo trượt lên (Virtual Keyboard Overlay):**
+    *   *Nút kích hoạt bàn phím:* Touch Box `(X=850, Y=500, Rộng=100, Cao=60)`, Value gửi đi = `CMD_POP_KEYBOARD`. Gọi hiển thị Popup bàn phím 75% tại trang DWIN tương ứng.
+
+### Trang 10: Resource Monitor Graph (Đồ thị Giám sát Tài nguyên)
+Vẽ trực quan 3 thông số CPU, RAM và Disk của thiết bị được kết nối theo dạng thời gian thực (60s gần nhất):
+
+![DWIN Resource Monitor Mockup](C:\Users\gurayushi\.gemini\antigravity-ide\brain\c8e50d47-ddd0-4373-a153-ed09e9b90385\dwin_resource_monitor_mockup_1785690896837.png)
+
+*   **Nhãn chỉ số Text:**
+    *   *Widget:* Text Display (ASCII)
+    *   *CPU Load VP:* `0x0480` - Tọa độ: X=150, Y=100
+    *   *RAM Usage VP:* `0x0482` - Tọa độ: X=450, Y=100
+    *   *Disk Space VP:* `0x0484` - Tọa độ: X=750, Y=100
+*   **Đường cong đồ thị (Real-time Curves):**
+    *   *Widget:* Real-time Curve (vẽ đường đa điểm DWIN)
+    *   *Kênh vẽ (Channels):* Cấu hình 3 kênh màu khác nhau tương ứng với dữ liệu trả về từ lịch sử:
+        *   Kênh 0 (CPU): Neon Pink (`#f472b6`)
+        *   Kênh 1 (RAM): Neon Purple (`#c084fc`)
+        *   Kênh 2 (Disk): Neon Blue (`#3b82f6`)
 
 ---
 
