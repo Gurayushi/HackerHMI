@@ -184,3 +184,62 @@ Khi người dùng nhấn các nút bấm cảm ứng trên màn hình DWIN, HMI
 *   `ssh_pass=<value>`: Thiết lập mật khẩu SSH mặc định.
 *   `start_ota=1`: Khởi động Web Server OTA cập nhật phần mềm không dây trên ESP32-C5.
 *   `start_ota=0`: Tắt Web Server OTA.
+
+---
+
+## IV. BẢNG LINH KIỆN & SƠ ĐỒ ĐẤU NỐI VẬT LÝ (HARDWARE PINOUT & SCHEMATIC MAP)
+
+Dưới đây là đặc tả chi tiết linh kiện sử dụng và sơ đồ đấu nối dây vật lý giữa 2 chip xử lý và các mô-đun ngoại vi:
+
+### 1. Danh sách Linh kiện Phần cứng (Bill of Materials)
+
+| STT | Tên Linh kiện | Mã hiệu/Part Number | Vai trò & Kết nối chính |
+| :---: | :--- | :--- | :--- |
+| 1 | **MCU Chính** | Raspberry Pi Pico 2 (RP2350A) | Cortex-M33, quản lý ngoại vi thời gian thực và giao tiếp UART DWIN HMI. |
+| 2 | **MCU Mạng** | ESP32-C5-DevKitC-1 (N16R8) | RISC-V, 16MB Flash, 8MB PSRAM, xử lý SSH/Monitor và phát sóng Deauther 5GHz. |
+| 3 | **Màn hình HMI** | DWIN 7" (DMT10600C070-07WTZ5) | Giao tiếp UART0, điều khiển cảm ứng điện dung tích hợp chip T5L. |
+| 4 | **Module RF** | Texas Instruments CC1101 SPI | Phân giải tín hiệu vô tuyến 315/433MHz nối cổng SPI1. |
+| 5 | **Đầu đọc RFID** | RDM6300 UART Receiver | Đọc thẻ từ chung cư tần số 125kHz nối cổng UART1. |
+| 6 | **Đầu đọc NFC** | NXP PN532 I2C Shield | Đọc/Ghi thẻ NFC 13.56MHz nối cổng I2C0. |
+| 7 | **Hồng ngoại (IR)** | Led IR Phát KY-005 + Mắt thu TSOP38238 | Phát/Thu sóng hồng ngoại gia dụng băm xung 38kHz. |
+
+---
+
+### 2. Sơ đồ Pinout Đấu nối Vật lý (Inter-chip & Peripheral Wiring)
+
+#### A. Liên kết RP2350 $\leftrightarrow$ ESP32-C5 (SPI, SWD, UART Flash)
+*   **Đường truyền dữ liệu chính SPI (Pico SPI0):**
+    *   `MISO`: RP2350 GPIO 16 $\leftrightarrow$ ESP32-C5 GPIO 16
+    *   `MOSI`: RP2350 GPIO 19 $\leftrightarrow$ ESP32-C5 GPIO 19
+    *   `SCK`: RP2350 GPIO 18 $\leftrightarrow$ ESP32-C5 GPIO 18
+    *   `CS`: RP2350 GPIO 17 $\leftrightarrow$ ESP32-C5 GPIO 17
+*   **Đường báo hiệu ngắt (Handshake interrupt):**
+    *   `Handshake`: RP2350 GPIO 22 $\leftrightarrow$ ESP32-C5 GPIO 22
+*   **Đường nạp cứu hộ UART Bootloader (RP2350 nạp cho C5):**
+    *   `UART TX`: RP2350 GPIO 8 (Pico TX1) $\rightarrow$ ESP32-C5 RX0 (UART0)
+    *   `UART RX`: RP2350 GPIO 9 (Pico RX1) $\leftarrow$ ESP32-C5 TX0 (UART0)
+    *   `Chip Reset (EN)`: RP2350 GPIO 20 $\rightarrow$ Chân EN (Reset) của ESP32-C5
+    *   `Boot strapping (IO9)`: RP2350 GPIO 21 $\rightarrow$ Chân IO9 (Strapping pin) của ESP32-C5
+*   **Đường nạp SWD Không dây (ESP32-C5 nạp OTA cho RP2350):**
+    *   `SWCLK`: ESP32-C5 GPIO 4 $\rightarrow$ Chân SWCLK của RP2350
+    *   `SWDIO`: ESP32-C5 GPIO 5 $\leftrightarrow$ Chân SWDIO của RP2350
+    *   `RP2350 RST`: ESP32-C5 GPIO 6 $\rightarrow$ Chân RUN/RST của RP2350
+
+#### B. Liên kết RP2350 $\leftrightarrow$ Thiết bị ngoại vi & DWIN HMI
+*   **Màn hình DWIN HMI (UART0):**
+    *   `UART TX`: RP2350 GPIO 0 (TX0) $\rightarrow$ Chân RXD của màn hình DWIN
+    *   `UART RX`: RP2350 GPIO 1 (RX0) $\leftarrow$ Chân TXD của màn hình DWIN
+*   **Đầu đọc thẻ RFID 125kHz RDM6300 (UART1):**
+    *   `UART RX`: RP2350 GPIO 9 (RX1) $\leftarrow$ Chân TXD của module RDM6300
+*   **Đầu đọc thẻ NFC 13.56MHz PN532 (I2C0):**
+    *   `I2C SDA`: RP2350 GPIO 4 (SDA0) $\leftrightarrow$ Chân SDA của PN532 (kéo trở pull-up 4.7k lên 3.3V)
+    *   `I2C SCL`: RP2350 GPIO 5 (SCL0) $\leftrightarrow$ Chân SCL của PN532 (kéo trở pull-up 4.7k lên 3.3V)
+*   **Module Vô tuyến Sub-1GHz CC1101 (SPI1):**
+    *   `MISO`: RP2350 GPIO 12 $\leftrightarrow$ Chân MISO của CC1101
+    *   `MOSI`: RP2350 GPIO 15 $\leftrightarrow$ Chân MOSI của CC1101
+    *   `SCK`: RP2350 GPIO 14 $\leftrightarrow$ Chân SCK của CC1101
+    *   `CS`: RP2350 GPIO 13 $\leftrightarrow$ Chân CSN của CC1101
+    *   `GDO0`: RP2350 GPIO 10 $\leftarrow$ Chân GDO0 của CC1101 (Chân ngắt thu nhận sóng)
+*   **Hồng ngoại IR Blaster:**
+    *   `IR LED`: RP2350 GPIO 22 $\rightarrow$ Chân anode LED IR phát (điều chế băm xung 38kHz)
+
