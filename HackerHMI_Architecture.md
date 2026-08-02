@@ -35,15 +35,17 @@ Hệ thống hoạt động theo mô hình **Đa xử lý không đối xứng (
 
 ---
 
-### TÍNH NĂNG 2: BadUSB Keystroke Injection & Touchpad Macro
-*   **Chức năng con:** Giả lập bàn phím/chuột USB HID chuẩn, tự động gõ payload tấn công tự động (Ducky scripts), thay đổi OS đích, chạy Macro 1-click.
+### TÍNH NĂNG 2: BadUSB & Stream Deck Mode (Keystroke Injection & Control Pad)
+*   **Chức năng con:** 
+    *   **BadUSB:** Giả lập bàn phím/chuột USB HID chuẩn, tự động gõ payload tấn công tự động (Ducky scripts) và thiết lập hệ điều hành tương thích (Windows, MacOS, Linux, Android).
+    *   **Stream Deck Mode:** Tận dụng bàn phím ảo DWIN HMI làm bàn phím Macro Pad/Control Pad để kích hoạt nhanh các tổ hợp phím tắt (Multi-action macros: `CMD_MACRO_1` đến `CMD_MACRO_4`) và các lệnh điều hướng hệ thống (Điều chỉnh âm lượng qua `VOL_VAL:`, độ sáng màn hình qua `BRIGHT_VAL:` bằng bàn phím đa phương tiện Consumer Control).
 *   **Luồng hoạt động:**
-    1. Khi người dùng kích hoạt cấu hình Macro hoặc OS trên HMI, lệnh UART truyền về RP2350 (`CMD_OS_WIN`, `CMD_MACRO_1`).
-    2. RP2350 chạy thư viện TinyUSB HID giả lập tín hiệu bàn phím vật lý gửi trực tiếp qua cổng USB-C đến PC nạn nhân.
-*   **Cấp phát bộ nhớ:** Chạy hoàn toàn trên bộ nhớ RAM nội tại của RP2350 (tốn khoảng 2KB cho các biến cấu hình OS và Macro). ESP32-C5 không tham gia vào tính năng này.
+    1. Khi người dùng thao tác nhấn nút trên giao diện Stream Deck của HMI, lệnh UART truyền về RP2350.
+    2. RP2350 phân tách lệnh, sử dụng driver USB HID (chạy qua TinyUSB trên RP2350) đóng gói các gói tin báo cáo phím (Keyboard/Consumer reports) tương ứng và gửi thẳng qua cổng USB-C vật lý sang máy tính điều khiển.
+*   **Cấp phát bộ nhớ:** Chạy hoàn toàn trên bộ nhớ RAM của RP2350 (khoảng 3KB cho cấu trúc mapping phím tắt macro). ESP32-C5 không tham gia vào luồng truyền USB HID này để giữ an toàn tối đa cho CPU phụ.
 *   **Cấu trúc chương trình:** 
-    *   *RP2350:* `src/usb/hid_device.h` và `src/usb/badusb.h`.
-
+    *   *RP2350:* `src/usb/hid_device.h` và `src/usb/badusb.h`. Tích hợp phân giải phím tắt trong hàm xử lý chính ở `src/main.c`.
+ 
 ---
 
 ### TÍNH NĂNG 3: RFID / NFC Reader & Cloner
