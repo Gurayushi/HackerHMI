@@ -121,6 +121,18 @@ Hệ thống hoạt động theo mô hình **Đa xử lý không đối xứng (
 
 ---
 
+### TÍNH NĂNG 9: Núm xoay Vô cấp (Rotary Encoder - EC11 / KY-040)
+*   **Chức năng con:** Cuộn điều hướng Menu danh sách, điều chỉnh tăng/giảm âm lượng (`VOL_VAL`) và độ sáng (`BRIGHT_VAL`) vô cấp, cuộn ngược lịch sử Terminal (Scrollback).
+*   **Luồng hoạt động:** 
+    1. Khi người dùng xoay núm hoặc nhấn nút, trạng thái chân CLK/DT/SW thay đổi kích hoạt ngắt ngoài (External GPIO Interrupt) trên RP2350.
+    2. RP2350 tính toán chiều xoay (Thuận/Nghịch). Nếu ở chế độ Stream Deck, nó gửi phím tăng/giảm âm lượng hoặc độ sáng qua cổng USB HID giả lập tới PC, đồng thời đồng bộ giá trị hiển thị mới xuống HMI DWIN qua UART.
+    3. Nếu ở chế độ Terminal, xoay núm sẽ thay đổi con trỏ cuộn dòng và gửi lệnh render lại bộ đệm cuộn.
+*   **Cấp phát bộ nhớ:** Sử dụng bộ đếm trạng thái nhẹ (vài bytes) trong RAM để lưu trữ vị trí encoder hiện thời.
+*   **Cấu trúc chương trình:**
+    *   *RP2350:* Tích hợp trình đọc encoder dùng bộ đếm ngắt (Interrupt-driven debouncing) trong `src/main.c` hoặc module hỗ trợ ngoại vi.
+
+---
+
 ## III. BẢN ĐỒ CHI TIẾT ĐỊA CHỈ BIẾN & LỆNH HMI DWIN (VARIABLE & COMMAND MAP)
 
 Màn hình DWIN HMI tương tác với RP2350 thông qua các địa chỉ biến vùng nhớ (VP Address) và các mã lệnh chuỗi ASCII gửi qua UART. Dưới đây là bảng đặc tả đầy đủ:
@@ -202,6 +214,7 @@ Dưới đây là đặc tả chi tiết linh kiện sử dụng và sơ đồ �
 | 5 | **Đầu đọc RFID** | RDM6300 UART Receiver | Đọc thẻ từ chung cư tần số 125kHz nối cổng UART1. |
 | 6 | **Đầu đọc NFC** | NXP PN532 I2C Shield | Đọc/Ghi thẻ NFC 13.56MHz nối cổng I2C0. |
 | 7 | **Hồng ngoại (IR)** | Led IR Phát KY-005 + Mắt thu TSOP38238 | Phát/Thu sóng hồng ngoại gia dụng băm xung 38kHz. |
+| 8 | **Núm xoay vô cấp** | EC11 / KY-040 Rotary Encoder | Nhập liệu vô cấp, cuộn menu/lịch sử terminal, chỉnh âm lượng/độ sáng. |
 
 ---
 
@@ -242,4 +255,8 @@ Dưới đây là đặc tả chi tiết linh kiện sử dụng và sơ đồ �
     *   `GDO0`: RP2350 GPIO 10 <- Chân GDO0 của CC1101 (Chân ngắt thu nhận sóng)
 *   **Hồng ngoại IR Blaster:**
     *   `IR LED`: RP2350 GPIO 22 -> Chân anode LED IR phát (điều chế băm xung 38kHz)
+*   **Núm xoay vô cấp EC11 / KY-040:**
+    *   `CLK`: RP2350 GPIO 2 -> Chân CLK (Clock) của Rotary Encoder
+    *   `DT`: RP2350 GPIO 3 -> Chân DT (Data) của Rotary Encoder
+    *   `SW`: RP2350 GPIO 6 -> Chân SW (Switch nút nhấn) của Rotary Encoder
 
