@@ -1,3 +1,5 @@
 dependencies:
   idf: ">=5.0"
-  nopnop2002/libssh2: "*"
+  ch405labs_esp_libssh2:
+    git: "https://github.com/nopnop2002/esp-idf-ssh-client.git"
+    path: "components/ch405labs_esp_libssh2"

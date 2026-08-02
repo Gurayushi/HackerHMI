@@ -1,0 +1,25 @@
+idf_component_register(
+    SRCS 
+        "main.c"
+        "deauther/wifi_ctrl.c"
+        "deauther/targets.c"
+        "deauther/frames.c"
+        "deauther/attack.c"
+        "deauther/acl.c"
+        "deauther/sniffer.c"
+        "deauther/io.c"
+        "deauther/led.c"
+        "deauther/cli.c"
+        "deauther/task_manager.c"
+    INCLUDE_DIRS 
+        "."
+        "deauther"
+        "ota"
+        "flasher"
+    REQUIRES
+        esp_wifi
+        esp_event
+        nvs_flash
+        driver
+        ch405labs_esp_libssh2
+)

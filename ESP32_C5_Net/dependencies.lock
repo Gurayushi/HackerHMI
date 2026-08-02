@@ -1,0 +1,19 @@
+dependencies:
+  ch405labs_esp_libssh2:
+    component_hash: 20c81e5e867c83210eecb6b67faff3e6c7623a167d6a523c6b56f59d15cd534a
+    dependencies: []
+    source:
+      git: https://github.com/nopnop2002/esp-idf-ssh-client.git
+      path: components/ch405labs_esp_libssh2
+      type: git
+    version: 9d79e31b3cbf0471aa0aa706289b792253a6ec1f
+  idf:
+    source:
+      type: idf
+    version: 5.5.5
+direct_dependencies:
+- ch405labs_esp_libssh2
+- idf
+manifest_hash: 1a85f7d7cfa34ce75b662c1f034d1992da339d78ee189953ede6b4ce752cf510
+target: esp32c5
+version: 2.0.0

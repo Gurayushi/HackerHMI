@@ -3,6 +3,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
+#include "freertos/queue.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
@@ -10,50 +11,35 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 
-// Thư viện SSH sẽ được compile từ idf_component.yml
+// Thư viện SSH
 #include "libssh2.h"
 #include "driver/spi_slave.h"
 #include "driver/gpio.h"
-#include "rp2350_swd_flasher.h"
-#include "ota_server.h"
+#include "flasher/rp2350_swd_flasher.h"
+#include "ota/ota_server.h"
+#include "deauther/task_manager.h"
 
+// Cấu hình các chân SPI2
 #define GPIO_MOSI 19
 #define GPIO_MISO 16
 #define GPIO_SCLK 18
 #define GPIO_CS   17
+#define GPIO_HANDSHAKE 22
 
-// Thư viện Bluetooth LE
-#include "esp_bt.h"
-#include "esp_gap_ble_api.h"
-#include "esp_gatts_api.h"
-#include "esp_bt_main.h"
-#include "esp_bt_device.h"
+// Cấu hình Deauther Core
+#include "deauther/io.h"
+#include "deauther/wifi_ctrl.h"
+#include "deauther/targets.h"
+#include "deauther/attack.h"
+#include "deauther/cli.h"
 
-// Cấu hình dịch vụ BLE UART (NUS)
-#define BLE_SERVICE_UUID     0x0001
-#define BLE_CHAR_UUID_RX     0x0002 // Cổng nhận (Write)
-#define BLE_CHAR_UUID_TX     0x0003 // Cổng gửi (Notify)
-
-static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
-static void gap_event_handler(esp_ble_gap_cb_event_t event, esp_ble_gap_cb_param_t *param);
-
-static uint8_t raw_adv_data[] = {
-    0x02, 0x01, 0x06,
-    0x0e, 0x09, 'H', 'a', 'c', 'k', 'e', 'r', 'H', 'M', 'I', '_', 'B', 'L', 'E'
-};
-
-static esp_ble_adv_params_t adv_params = {
-    .adv_int_min        = 0x20,
-    .adv_int_max        = 0x40,
-    .adv_type           = ADV_TYPE_IND,
-    .own_addr_type      = BLE_ADDR_TYPE_PUBLIC,
-    .channel_map        = ADV_CHNL_ALL,
-    .adv_filter_policy  = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
-};
+#define SPI_QUEUE_SIZE 32
+#define SPI_MSG_LEN 128
 
 static const char *TAG = "HACKER_NET";
+static QueueHandle_t s_spi_tx_queue = NULL;
 
-// Biến kiểm soát khởi động Wi-Fi một lần duy nhất
+// Biến kiểm soát khởi động Wi-Fi một lần duy nhất cho SSH/OTA
 static bool wifi_started = false;
 
 // Biến trạng thái Wi-Fi
@@ -68,204 +54,42 @@ char target_ip[32] = "";
 char target_user[32] = "";
 char target_pass[64] = "";
 
-// Hàm chuyển tiếp dữ liệu nhận từ BLE sang RP2350
+// Hàm gửi tin nhắn qua SPI về RP2350
+void send_to_rp2350(const char *msg) {
+    if (s_spi_tx_queue) {
+        char buf[SPI_MSG_LEN] = {0};
+        strncpy(buf, msg, SPI_MSG_LEN - 1);
+        xQueueSend(s_spi_tx_queue, buf, 0); // Đẩy vào hàng đợi không chặn
+    }
+}
+
 void forward_to_rp2350(const char* payload) {
-    ESP_LOGI(TAG, "[BLE -> SPI] Chuyển tiếp tên App nhận từ Bluetooth sang RP2350: %s", payload);
-    // TODO: Viết gói tin đẩy qua đường SPI Master/Slave đến RP2350
+    send_to_rp2350(payload);
 }
 
-static void gap_event_handler(esp_ble_gap_cb_event_t event, esp_ble_gap_cb_param_t *param) {
-    switch (event) {
-        case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT:
-            esp_ble_gap_start_advertising(&adv_params);
-            break;
-        default:
-            break;
-    }
+// Các ký hiệu giả lập để tránh lỗi liên kết thư viện Wi-Fi cũ với IDF mới
+uint32_t g_offchan_packet_lifetime = 1000;
+int wifi_nvs_get_low_rate_enable(void) {
+    return 0;
+}
+bool esp_wifi_use_supp_pmk_cache(void) {
+    return false;
 }
 
-static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param) {
-    switch (event) {
-        case ESP_GATTS_REG_EVT:
-            esp_ble_gap_set_device_name("HackerHMI_BLE");
-            esp_ble_gap_config_adv_data_raw(raw_adv_data, sizeof(raw_adv_data));
-            
-            esp_gatt_srvc_id_t service_id = {
-                .is_primary = true,
-                .id.uuid.len = ESP_UUID_LEN_16,
-                .id.uuid.uuid.uuid16 = BLE_SERVICE_UUID,
-            };
-            esp_ble_gatts_create_service(gatts_if, &service_id, 4);
-            break;
-        case ESP_GATTS_CREATE_EVT:
-            esp_ble_gatts_start_service(param->create.service_handle);
-            esp_bt_uuid_t char_uuid = {
-                .len = ESP_UUID_LEN_16,
-                .uuid.uuid.uuid16 = BLE_CHAR_UUID_RX,
-            };
-            esp_ble_gatts_add_char(param->create.service_handle, &char_uuid,
-                                   ESP_GATT_PERM_WRITE,
-                                   ESP_GATT_CHAR_PROP_BIT_WRITE,
-                                   NULL, NULL);
-            break;
-        case ESP_GATTS_WRITE_EVT:
-            if (param->write.len > 0) {
-                char payload[64] = {0};
-                memcpy(payload, param->write.value, param->write.len < 63 ? param->write.len : 63);
-                ESP_LOGI(TAG, "Nhận lệnh đổi App qua BLE NUS: %s", payload);
-                forward_to_rp2350(payload);
-            }
-            break;
-        default:
-            break;
+// Sink xuất log ra SPI gửi về RP2350
+static void spi_log_sink(const char *buf, size_t len, void *ctx) {
+    (void)ctx;
+    char msg[SPI_MSG_LEN];
+    size_t offset = 0;
+    while (offset < len) {
+        memset(msg, 0, sizeof(msg));
+        strcpy(msg, "LOG:");
+        size_t chunk = len - offset;
+        if (chunk > (SPI_MSG_LEN - 5)) chunk = SPI_MSG_LEN - 5;
+        memcpy(msg + 4, buf + offset, chunk);
+        send_to_rp2350(msg);
+        offset += chunk;
     }
-}
-
-void init_ble_nus() {
-    ESP_LOGI(TAG, "Khởi tạo Bluetooth LE NUS...");
-    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    esp_bt_controller_init(&bt_cfg);
-    esp_bt_controller_enable(ESP_BT_MODE_BLE);
-    esp_bluedroid_init();
-    esp_bluedroid_enable();
-    esp_ble_gatts_register_callback(gatts_event_handler);
-    esp_ble_gap_register_callback(gap_event_handler);
-    esp_ble_gatts_app_register(0);
-}
-
-// Hàm giao tiếp SPI Slave với RP2350 (HMI master) để nhận cấu hình
-void listen_to_rp2350_for_config() {
-    ESP_LOGI(TAG, "Khởi tạo SPI Slave để nhận cấu hình từ RP2350...");
-    
-    // Cấu hình các chân Bus SPI2
-    spi_bus_config_t buscfg = {
-        .mosi_io_num = GPIO_MOSI,
-        .miso_io_num = GPIO_MISO,
-        .sclk_io_num = GPIO_SCLK,
-        .quadwp_io_num = -1,
-        .quadhd_io_num = -1,
-    };
-
-    // Cấu hình giao tiếp Slave
-    spi_slave_interface_config_t slvcfg = {
-        .mode = 0,
-        .spics_io_num = GPIO_CS,
-        .queue_size = 3,
-        .flags = 0,
-    };
-
-    // Khởi tạo driver SPI Slave trên SPI2_HOST
-    esp_err_t ret = spi_slave_initialize(SPI2_HOST, &buscfg, &slvcfg, SPI_DMA_CH_AUTO);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Lỗi khởi tạo SPI Slave: %s", esp_err_to_name(ret));
-        return;
-    }
-
-    // Bộ đệm nhận dữ liệu
-    WORD_ALIGNED_ATTR char recvbuf[128] = "";
-    spi_slave_transaction_t t = {
-        .length = 128 * 8, // Chiều dài giao tiếp tính bằng bit
-        .rx_buffer = recvbuf,
-    };
-
-    while (1) {
-        memset(recvbuf, 0, sizeof(recvbuf));
-        
-        // Đợi cho đến khi Master (RP2350) bắt đầu xung Clock truyền tin
-        ret = spi_slave_transmit(SPI2_HOST, &t, portMAX_DELAY);
-        if (ret == ESP_OK) {
-            ESP_LOGI(TAG, "Nhận được gói tin từ RP2350: %s", recvbuf);
-            
-            // Phân tích cú pháp: key=value (Vd: wifi_ssid=MyHomeWiFi)
-            char *equal_sign = strchr(recvbuf, '=');
-            if (equal_sign != NULL) {
-                *equal_sign = '\0';
-                char *key = recvbuf;
-                char *value = equal_sign + 1;
-                
-                // Loại bỏ ký tự xuống dòng / dấu cách dư thừa ở cuối
-                int len = strlen(value);
-                while(len > 0 && (value[len-1] == '\n' || value[len-1] == '\r' || value[len-1] == ' ')) {
-                    value[len-1] = '\0';
-                    len--;
-                }
-
-                // Xử lý các lệnh cấu hình động Runtime không ghi vào NVS Flash
-                if (strcmp(key, "start_ota") == 0) {
-                    if (strcmp(value, "1") == 0) {
-                        ESP_LOGI(TAG, "Nhận tín hiệu từ RP2350: Kích hoạt OTA Web Server...");
-                        wifi_init_sta();
-                        start_ota_webserver();
-                    } else if (strcmp(value, "0") == 0) {
-                        ESP_LOGI(TAG, "Nhận tín hiệu từ RP2350: Dừng OTA Web Server...");
-                        stop_ota_webserver();
-                    }
-                    continue; // Bỏ qua ghi vào NVS Flash để bảo vệ tuổi thọ chip
-                }
-
-                // Ghi cấu hình nhận được trực tiếp vào NVS Flash
-                nvs_handle_t my_handle;
-                esp_err_t err = nvs_open("storage", NVS_READWRITE, &my_handle);
-                if (err == ESP_OK) {
-                    err = nvs_set_str(my_handle, key, value);
-                    if (err == ESP_OK) {
-                        nvs_commit(my_handle);
-                        ESP_LOGI(TAG, "Đã lưu NVS thành công: %s = %s", key, value);
-                    } else {
-                        ESP_LOGE(TAG, "Lỗi ghi NVS key %s: %s", key, esp_err_to_name(err));
-                    }
-                    nvs_close(my_handle);
-                    
-                    // Nếu là khóa mật khẩu hoặc lệnh kết thúc, tự động reboot để áp dụng kết nối SSH
-                    if (strcmp(key, "save_restart") == 0 || strcmp(key, "ssh_pass") == 0 || strcmp(key, "wifi_pass") == 0) {
-                        ESP_LOGI(TAG, "Khởi động lại ESP32-C5 để áp dụng cấu hình mới...");
-                        vTaskDelay(1000 / portTICK_PERIOD_MS);
-                        esp_restart();
-                    }
-                } else {
-                    ESP_LOGE(TAG, "Lỗi mở NVS phân vùng storage: %s", esp_err_to_name(err));
-                }
-            }
-        } else {
-            ESP_LOGE(TAG, "Lỗi truyền nhận SPI Slave: %s", esp_err_to_name(ret));
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-        }
-    }
-}
-
-// Hàm đọc NVS
-void load_config_from_nvs() {
-    ESP_LOGI(TAG, "Đang tải cấu hình từ NVS...");
-    nvs_handle_t my_handle;
-    esp_err_t err = nvs_open("storage", NVS_READONLY, &my_handle);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Lỗi mở NVS (%s)", esp_err_to_name(err));
-        return;
-    }
-
-    size_t required_size = 0;
-    
-    // Đọc Target IP
-    required_size = sizeof(target_ip);
-    nvs_get_str(my_handle, "ssh_ip", target_ip, &required_size);
-    
-    // Đọc Target Username
-    required_size = sizeof(target_user);
-    nvs_get_str(my_handle, "ssh_user", target_user, &required_size);
-
-    // Đọc Target Password
-    required_size = sizeof(target_pass);
-    nvs_get_str(my_handle, "ssh_pass", target_pass, &required_size);
-    
-    // Đọc Wi-Fi SSID
-    required_size = sizeof(wifi_ssid);
-    nvs_get_str(my_handle, "wifi_ssid", wifi_ssid, &required_size);
-
-    // Đọc Wi-Fi Password
-    required_size = sizeof(wifi_pass);
-    nvs_get_str(my_handle, "wifi_pass", wifi_pass, &required_size);
-
-    nvs_close(my_handle);
 }
 
 // Xử lý sự kiện Wi-Fi
@@ -282,7 +106,7 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
     }
 }
 
-// Khởi tạo Wi-Fi Station
+// Khởi tạo Wi-Fi Station cho OTA/SSH
 void wifi_init_sta(void) {
     if (wifi_started) {
         ESP_LOGI(TAG, "Wi-Fi đã được khởi chạy từ trước.");
@@ -310,7 +134,6 @@ void wifi_init_sta(void) {
         },
     };
     
-    // Copy cấu hình từ biến toàn cục (NVS)
     strcpy((char*)wifi_config.sta.ssid, wifi_ssid);
     strcpy((char*)wifi_config.sta.password, wifi_pass);
 
@@ -320,86 +143,257 @@ void wifi_init_sta(void) {
     ESP_LOGI(TAG, "Wi-Fi khởi tạo hoàn tất.");
 }
 
-// Luồng thực thi SSH (FreeRTOS Task)
+// Luồng thực thi SSH
 void ssh_task(void *pvParameters) {
     ESP_LOGI(TAG, "Đang khởi tạo phiên SSH...");
-
-    // Chờ Wi-Fi kết nối thành công mới chạy
     xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
-    
     ESP_LOGI(TAG, "Đang kết nối SSH tới %s@%s", target_user, target_ip);
     
-    // 1. Khởi tạo TCP Socket tới target_ip cổng 22
-    // 2. Khởi tạo libssh2 session: libssh2_session_init()
-    // 3. Bắt tay (Handshake)
-    // 4. Xác thực: libssh2_userauth_password()
-    // 5. Mở kênh truyền: libssh2_channel_open_session()
-    
-    // Vòng lặp liên tục gửi lệnh (1 giây/lần) để lấy dữ liệu CPU/RAM
     while(1) {
-        // Gửi lệnh: Get-Process | Select-Object -First 10
-        // Đọc Output thô
-        // (Tương lai) Phân tích Output và gửi về RP2350 qua SPI
-        
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-    
-    // Đóng kênh và session khi kết thúc
-    // libssh2_channel_free()
-    // libssh2_session_disconnect()
-    // libssh2_session_free()
-    
     vTaskDelete(NULL);
 }
 
-// Hàm cập nhật firmware từ xa cho RP2350 (Gọi khi có OTA file mới tải về)
+// Hàm nạp flash cho RP2350 qua SWD
 void ota_update_rp2350(const uint8_t* bin_data, size_t size) {
     ESP_LOGI(TAG, "Bắt đầu cập nhật OTA cho chip RP2350...");
-    
-    // B1: Halt RP2350 để lấy quyền kiểm soát Core
     rp2350_halt();
-    
-    // B2: Thực hiện xóa và ghi flash ngoài của RP2350 qua SWD
     rp2350_flash_write(bin_data, size);
-    
-    // B3: Reset và giải phóng RP2350 để chạy code mới
     rp2350_reboot();
+}
+
+// Task giao tiếp SPI Slave với RP2350
+void spi_slave_task(void *pvParameters) {
+    ESP_LOGI(TAG, "Khởi động SPI Slave Task...");
+
+    spi_bus_config_t buscfg = {
+        .mosi_io_num = GPIO_MOSI,
+        .miso_io_num = GPIO_MISO,
+        .sclk_io_num = GPIO_SCLK,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+    };
+
+    spi_slave_interface_config_t slvcfg = {
+        .mode = 0,
+        .spics_io_num = GPIO_CS,
+        .queue_size = 3,
+        .flags = 0,
+    };
+
+    ESP_ERROR_CHECK(spi_slave_initialize(SPI2_HOST, &buscfg, &slvcfg, SPI_DMA_CH_AUTO));
+
+    // Cấu hình chân Handshake
+    gpio_config_t io_conf = {
+        .intr_type = GPIO_INTR_DISABLE,
+        .mode = GPIO_MODE_OUTPUT,
+        .pin_bit_mask = (1ULL << GPIO_HANDSHAKE),
+        .pull_down_en = 0,
+        .pull_up_en = 0,
+    };
+    gpio_config(&io_conf);
+    gpio_set_level(GPIO_HANDSHAKE, 1); // Mặc định HIGH
+
+    WORD_ALIGNED_ATTR char recvbuf[SPI_MSG_LEN];
+    WORD_ALIGNED_ATTR char sendbuf[SPI_MSG_LEN];
+
+    spi_slave_transaction_t t = {
+        .length = SPI_MSG_LEN * 8,
+        .rx_buffer = recvbuf,
+        .tx_buffer = sendbuf,
+    };
+
+    while (1) {
+        memset(recvbuf, 0, sizeof(recvbuf));
+        memset(sendbuf, 0, sizeof(sendbuf));
+
+        // Kiểm tra xem có tin nhắn gửi đi trong queue không
+        bool has_msg = false;
+        if (xQueueReceive(s_spi_tx_queue, sendbuf, 0) == pdTRUE) {
+            has_msg = true;
+            gpio_set_level(GPIO_HANDSHAKE, 0); // Kéo xuống LOW báo tin nhắn
+        } else {
+            strcpy(sendbuf, "IDLE");
+        }
+
+        // Chờ nhận / gửi qua SPI
+        esp_err_t ret = spi_slave_transmit(SPI2_HOST, &t, portMAX_DELAY);
+        
+        if (has_msg) {
+            gpio_set_level(GPIO_HANDSHAKE, 1); // Trả về HIGH
+        }
+
+        if (ret == ESP_OK) {
+            if (strlen(recvbuf) > 0 && strcmp(recvbuf, "IDLE") != 0) {
+                // --- BỘ XỬ LÝ LỆNH ĐA NHIỆM TỪ RP2350 HMI ---
+                if (strncmp(recvbuf, "CMD_", 4) == 0) {
+                    if (strncmp(recvbuf, "CMD_GET_TASKS ", 14) == 0) {
+                        int type = atoi(recvbuf + 14);
+                        char list_buf[128];
+                        task_get_list(type, list_buf, sizeof(list_buf));
+                        send_to_rp2350(list_buf);
+                    }
+                    else if (strncmp(recvbuf, "CMD_START_TASK ", 15) == 0) {
+                        int type;
+                        char host[32], user[32], pass[32];
+                        int port = 22;
+                        if (sscanf(recvbuf + 15, "%d %s %s %s %d", &type, host, user, pass, &port) >= 4) {
+                            task_instance_t* task = task_create(type, host, user, pass, port);
+                            if (task) {
+                                char reply[32];
+                                snprintf(reply, sizeof(reply), "TASK_STARTED:%lu", task->task_id);
+                                send_to_rp2350(reply);
+                            } else {
+                                send_to_rp2350("TASK_START_ERR");
+                            }
+                        }
+                    }
+                    else if (strncmp(recvbuf, "CMD_HIDE_TASK ", 14) == 0) {
+                        uint32_t task_id = strtoul(recvbuf + 14, NULL, 10);
+                        if (task_hide(task_id)) {
+                            char reply[32];
+                            snprintf(reply, sizeof(reply), "TASK_HIDDEN:%lu", task_id);
+                            send_to_rp2350(reply);
+                        }
+                    }
+                    else if (strncmp(recvbuf, "CMD_RESUME_TASK ", 16) == 0) {
+                        uint32_t task_id = strtoul(recvbuf + 16, NULL, 10);
+                        task_instance_t* task = task_resume(task_id);
+                        if (task) {
+                            char reply[32];
+                            snprintf(reply, sizeof(reply), "TASK_RESUMED:%lu", task_id);
+                            send_to_rp2350(reply);
+                            
+                            if (task->type == TASK_TYPE_MONITOR) {
+                                send_monitor_history_to_hmi(task);
+                            }
+                        }
+                    }
+                    else if (strncmp(recvbuf, "CMD_KILL_TASK ", 14) == 0) {
+                        uint32_t task_id = strtoul(recvbuf + 14, NULL, 10);
+                        if (task_kill(task_id)) {
+                            char reply[32];
+                            snprintf(reply, sizeof(reply), "TASK_KILLED:%lu", task_id);
+                            send_to_rp2350(reply);
+                        }
+                    }
+                }
+                // Kiểm tra xem có phải lệnh cấu hình hệ thống không
+                else if (strncmp(recvbuf, "wifi_ssid=", 10) == 0 || strncmp(recvbuf, "wifi_pass=", 10) == 0 ||
+                    strncmp(recvbuf, "ssh_ip=", 7) == 0 || strncmp(recvbuf, "ssh_user=", 9) == 0 ||
+                    strncmp(recvbuf, "ssh_pass=", 9) == 0 || strncmp(recvbuf, "start_ota=", 10) == 0) {
+                    
+                    char temp[SPI_MSG_LEN];
+                    strcpy(temp, recvbuf);
+                    char *equal_sign = strchr(temp, '=');
+                    if (equal_sign != NULL) {
+                        *equal_sign = '\0';
+                        char *key = temp;
+                        char *value = equal_sign + 1;
+                        
+                        if (strcmp(key, "start_ota") == 0) {
+                            if (strcmp(value, "1") == 0) {
+                                wifi_init_sta();
+                                start_ota_webserver();
+                            } else {
+                                stop_ota_webserver();
+                            }
+                        } else {
+                            nvs_handle_t my_handle;
+                            if (nvs_open("storage", NVS_READWRITE, &my_handle) == ESP_OK) {
+                                nvs_set_str(my_handle, key, value);
+                                nvs_commit(my_handle);
+                                nvs_close(my_handle);
+                            }
+                        }
+                    }
+                } else {
+                    // Chuyển thẳng lệnh nhận được vào CLI của Deauther
+                    cli_feed(recvbuf, strlen(recvbuf));
+                    cli_feed("\r\n", 2);
+                }
+            }
+        } else {
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+    }
+}
+
+// Đọc cấu hình từ NVS
+void load_config_from_nvs() {
+    ESP_LOGI(TAG, "Đang tải cấu hình từ NVS...");
+    nvs_handle_t my_handle;
+    esp_err_t err = nvs_open("storage", NVS_READONLY, &my_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Lỗi mở NVS (%s)", esp_err_to_name(err));
+        return;
+    }
+
+    size_t required_size = 0;
+    required_size = sizeof(target_ip);
+    nvs_get_str(my_handle, "ssh_ip", target_ip, &required_size);
+    required_size = sizeof(target_user);
+    nvs_get_str(my_handle, "ssh_user", target_user, &required_size);
+    required_size = sizeof(target_pass);
+    nvs_get_str(my_handle, "ssh_pass", target_pass, &required_size);
+    required_size = sizeof(wifi_ssid);
+    nvs_get_str(my_handle, "wifi_ssid", wifi_ssid, &required_size);
+    required_size = sizeof(wifi_pass);
+    nvs_get_str(my_handle, "wifi_pass", wifi_pass, &required_size);
+
+    nvs_close(my_handle);
+}
+
+static void monitor_tick_task(void *pvParameters) {
+    (void)pvParameters;
+    while (1) {
+        monitor_update_tick();
+        send_monitor_updates_to_hmi();
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
 
 void app_main(void)
 {
-    // 1. Khởi tạo bộ nhớ NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-      ESP_ERROR_CHECK(nvs_flash_erase());
-      ret = nvs_flash_init();
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
 
     ESP_LOGI(TAG, "Bắt đầu khởi động ESP32-C5 HackerHMI");
     
-    // 2. Tải cấu hình động
+    // Tải cấu hình
     load_config_from_nvs();
 
-    // 3. Khởi tạo Bluetooth LE cho chế độ Stream Deck Smart Profile
-    init_ble_nus();
+    // Khởi tạo trình quản lý đa nhiệm
+    task_manager_init();
 
-    // 4. Khởi tạo các chân GPIO cho giao tiếp SWD nạp code cho RP2350
+    // Khởi tạo các module của Deauther
+    io_init();
+    io_register_sink(spi_log_sink, NULL);
+    wifi_ctrl_init();
+    targets_init();
+    attack_init();
+
+    // Khởi tạo các chân GPIO cho giao tiếp SWD
     swd_init_pins();
 
-    if (strlen(target_ip) == 0 || strlen(wifi_ssid) == 0) {
-        // HMI trống, chờ người dùng bấm dấu [+] trên màn hình và gõ phím
-        listen_to_rp2350_for_config();
-    } else {
-        // Đã có cấu hình trong NVS, kết nối Wi-Fi
+    // Tạo Queue và khởi động SPI Slave Task
+    s_spi_tx_queue = xQueueCreate(SPI_QUEUE_SIZE, SPI_MSG_LEN);
+    xTaskCreate(spi_slave_task, "spi_slave_task", 8192, NULL, 12, NULL);
+    
+    // Khởi chạy tác vụ cập nhật tài nguyên Dashboard định kỳ 1s
+    xTaskCreate(monitor_tick_task, "monitor_tick", 4096, NULL, 5, NULL);
+
+    if (strlen(target_ip) != 0 && strlen(wifi_ssid) != 0) {
         wifi_init_sta();
-        
-        // Mở luồng đa nhiệm chạy ngầm phiên SSH
         xTaskCreate(&ssh_task, "ssh_task", 8192, NULL, 5, NULL);
     }
     
-    // Vòng lặp rảnh rỗi của hàm main
     while (1) {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

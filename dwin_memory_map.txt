@@ -52,3 +52,21 @@ Khi thiết kế nút bấm trên màn hình (Ví dụ nút Bắn Hồng Ngoại
 - `0x0300`: Giá trị thanh trượt chỉnh Âm lượng hệ thống (HMI ghi giá trị 0-100).
 - `0x0302`: Giá trị thanh trượt chỉnh Độ sáng màn hình (HMI ghi giá trị 0-100).
 - `0x0310`: Nhận lệnh tự động chuyển Trang hiển thị (Smart Profile) từ Máy tính gửi xuống RP2350 qua USB để tự động đổi giao diện HMI tùy theo phần mềm đang active.
+
+## 6. Chế độ Wi-Fi Marauder / Deauther (Dual-Band)
+### Hiển thị thông tin (RP2350 ghi xuống HMI)
+- `0x0400`: Vùng nhớ hiển thị danh sách Wi-Fi AP quét được (ASCII Text).
+- `0x0450`: Vùng nhớ hiển thị danh sách các AP đã chọn để tấn công (ASCII Text).
+- `0x0470`: Vùng nhớ hiển thị trạng thái tấn công (ASCII Text, vd: "RUNNING - Nuke Mode" hoặc "STOPPED").
+- `0x0480`: Vùng nhớ hiển thị số lượng gói tin Deauth đã bắn (ASCII Text, vd: "Sent: 2.4G: 1045, 5G: 2314").
+- `0x0490`: Vùng nhớ hiển thị chế độ tấn công đang chọn (ASCII Text, vd: "Broadcast").
+
+### Lệnh nút bấm (HMI gửi lên RP2350)
+Khi người dùng chạm nút cảm ứng trên màn hình:
+- `CMD_DEAUTH_SCAN`: Bấm nút để bắt đầu quét các AP xung quanh.
+- `CMD_DEAUTH_START`: Bắt đầu tấn công Deauth các AP đã chọn.
+- `CMD_DEAUTH_STOP`: Dừng tất cả các cuộc tấn công đang chạy.
+- `CMD_DEAUTH_NUKE`: Chế độ "Nuke" tấn công tất cả các AP quét được trong 30 giây.
+- `DEAUTH_SEL:<ap_idx>`: Chọn hoặc hủy chọn AP theo số thứ tự (ví dụ: `DEAUTH_SEL:0` để chọn AP số 0).
+- `DEAUTH_MODE:<mode>`: Chọn chế độ tấn công (`broadcast`, `unicast`, `disassoc`, `authflood`, `mixed`).
+
