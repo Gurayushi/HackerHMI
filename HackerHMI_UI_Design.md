@@ -195,71 +195,22 @@ Sau khi thiết kế các file ảnh nền (BMP/PNG) và Icon trong DGUS Tool:
 
 ## 5. Danh sách Prompt để tự tạo Icon (Google Imagen / Midjourney / DALL-E)
 
-Nếu bạn muốn tự generate các icon riêng biệt với chất lượng cao nhất bằng AI, hãy sử dụng cấu trúc prompt mẫu dưới đây. 
+Nếu bạn muốn tự generate các bộ icon chất lượng cao nhất bằng AI, hãy sử dụng 4 đoạn prompt Sprite Sheet tương ứng với 4 nhóm chủ đề dưới đây.
 
 > [!TIP]
 > **Hướng dẫn tách nền:** Hãy dùng công cụ Remove.bg hoặc Photoshop/Figma để loại bỏ nền đen `solid black` thành dạng trong suốt (`transparent`) trước khi import vào DGUS Tool.
 
-### Prompt cấu trúc chung (Design Style Token):
-> `Futuristic cyberpunk neon app icon style, flat vector logo design, centered composition on a solid black background, glowing outline, vibrant colors of neon purple, neon pink, and cyan, high contrast, clean shapes, game UI asset`
+### 1. Bộ Icon Hệ Thống (System Core Icons)
+> **Prompt:** `A clean game UI sprite sheet containing 8 distinct cyberpunk neon system icons arranged in a neat 4x2 grid on a solid black background. There is wide black space and clear separation between each icon. The 8 icons are: 1. Home house icon, 2. WiFi signal antenna, 3. USB computer keyboard, 4. RFID keycard, 5. Radio tower with waves, 6. Infrared remote control, 7. Terminal console prompt '>_', 8. CPU microchip with pulse graph. All icons are drawn as vibrant glowing vector outlines in neon purple, pink, and cyan. Flat vector asset sheet, black background, no overlapping elements.`
 
-### Prompt để generate toàn bộ 24 icon trên cùng 1 tấm ảnh (Sprite Sheet Grid - 6x4):
-> `A clean game UI sprite sheet containing 24 distinct cyberpunk neon app icons arranged in a neat 6x4 grid on a solid black background. There is wide black space and clear separation between each icon. The 24 icons are: 1. Home house, 2. WiFi signal antenna, 3. USB computer keyboard, 4. RFID keycard, 5. Radio tower with waves, 6. Infrared remote control, 7. Terminal prompt '>_', 8. CPU activity graph, 9. Settings gear, 10. Back arrow button, 11. Locked padlock, 12. Unlocked padlock, 13. Bright glowing sun, 14. Day sun behind cloud, 15. Overcast grey cloud, 16. Rain cloud, 17. Heavy rain cloud, 18. Thunderstorm lightning cloud, 19. Glowing crescent moon, 20. Glowing full moon, 21. Night moon behind cloud, 22. Night rain cloud with moon, 23. Night lightning cloud with moon, 24. Snowflake frost. All icons are drawn as vibrant glowing vector outlines in neon purple, pink, and cyan. Flat vector asset sheet, black background, no overlapping elements.`
+### 2. Bộ Icon Thời Tiết Ban Ngày (Day Weather Icons)
+> **Prompt:** `A clean game UI sprite sheet containing 8 distinct cyberpunk neon daytime weather icons arranged in a neat 4x2 grid on a solid black background. There is wide black space and clear separation between each icon. The 8 icons are: 1. Bright glowing sun, 2. Sun behind cloud, 3. Sun behind rain cloud, 4. Overcast cloud, 5. Rain cloud, 6. Heavy rain storm cloud, 7. Lightning bolt cloud, 8. Snowflake frost. All icons are drawn as vibrant glowing vector outlines in neon yellow, cyan, and pink. Flat vector asset sheet, black background, no overlapping elements.`
 
-### Danh sách Prompt chi tiết cho từng Icon (Bao gồm Thời tiết Đêm & Các nút hệ thống):
+### 3. Bộ Icon Thời Tiết Ban Đêm & Mặt Trăng (Night Weather & Moon Icons)
+> **Prompt:** `A clean game UI sprite sheet containing 8 distinct cyberpunk neon nighttime weather and moon phase icons arranged in a neat 4x2 grid on a solid black background. There is wide black space and clear separation between each icon. The 8 icons are: 1. Glowing crescent moon, 2. Glowing full moon, 3. Crescent moon behind cloud, 4. Crescent moon behind rain cloud, 5. Crescent moon behind lightning cloud, 6. Moon with snowflake, 7. Foggy moon. All icons are drawn as vibrant glowing vector outlines in neon yellow, violet, and deep blue. Flat vector asset sheet, black background, no overlapping elements.`
 
-#### A. Nhóm Icon Chức năng Hệ thống (System Core Icons)
-1.  **Icon Home (Trang chủ):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a modern smart house, flat vector logo design, centered composition on a solid black background, vibrant colors of neon purple and pink, high contrast, game UI asset`
-2.  **Icon WiFi (Wi-Fi Deauther):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a wireless WiFi symbol with a small radar antenna, flat vector logo design, centered composition on a solid black background, vibrant colors of neon cyan and violet, high contrast, game UI asset`
-3.  **Icon Keyboard (BadUSB & Stream Deck):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a computer keyboard with a USB connector cable, flat vector logo design, centered composition on a solid black background, vibrant colors of neon pink and cyan, high contrast, game UI asset`
-4.  **Icon RFID/NFC (Sao chép thẻ):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a contact-less RFID chip card with signal waves, flat vector logo design, centered composition on a solid black background, vibrant colors of neon purple and blue, high contrast, game UI asset`
-5.  **Icon Radio (RF CC1101):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a radio transmitter tower emitting waves, flat vector logo design, centered composition on a solid black background, vibrant colors of neon cyan and purple, high contrast, game UI asset`
-6.  **Icon IR Blaster (Hồng ngoại):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a remote control with infrared waves, flat vector logo design, centered composition on a solid black background, vibrant colors of neon pink and purple, high contrast, game UI asset`
-7.  **Icon SSH Terminal (Dòng lệnh):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a terminal command prompt window showing ">_", flat vector logo design, centered composition on a solid black background, vibrant colors of neon cyan and green, high contrast, game UI asset`
-8.  **Icon Task Manager (Quản lý đa nhiệm):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a microchip with a heartbeat pulse graph, flat vector logo design, centered composition on a solid black background, vibrant colors of neon pink and blue, high contrast, game UI asset`
-9.  **Icon Settings Gear (Cài đặt hệ thống):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a mechanical gear wheel, flat vector logo design, centered composition on a solid black background, vibrant colors of neon cyan and violet, high contrast, game UI asset`
-10. **Icon Back Button (Nút quay lại):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a left-facing return arrow button, flat vector logo design, centered composition on a solid black background, vibrant colors of neon pink and purple, high contrast, game UI asset`
-11. **Icon Padlock Locked (Khóa):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a closed locked padlock, flat vector logo design, centered composition on a solid black background, vibrant colors of neon red and violet, high contrast, game UI asset`
-12. **Icon Padlock Unlocked (Mở khóa):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of an open unlocked padlock, flat vector logo design, centered composition on a solid black background, vibrant colors of neon green and cyan, high contrast, game UI asset`
+### 4. Bộ Icon Cử Chỉ & Chỉ Báo Trạng Thái (Gestures & Status Indicators)
+> **Prompt:** `A clean game UI sprite sheet containing 8 distinct cyberpunk neon navigation gestures and status indicators arranged in a neat 4x2 grid on a solid black background. There is wide black space and clear separation between each icon. The 8 icons are: 1. Left-pointing back arrow button, 2. Right-pointing forward arrow button, 3. Locked padlock, 4. Unlocked padlock, 5. Glowing neon green online status dot, 6. Glowing neon gray offline status dot, 7. Swipe up hand gesture, 8. Swipe left hand gesture. All icons are drawn as vibrant glowing vector outlines in neon pink, green, and cyan. Flat vector asset sheet, black background, no overlapping elements.`
 
-#### B. Nhóm Icon Thời tiết Ngày (Day Weather Icons)
-13. **Sunny (Nắng - Ngày quang):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a bright sun with rays, flat vector logo design, centered composition on a solid black background, vibrant colors of neon yellow and pink, high contrast, game UI asset`
-14. **Partly Cloudy Day (Ngày nhiều mây):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a sun behind a fluffy cloud, flat vector logo design, centered composition on a solid black background, vibrant colors of neon yellow and violet, high contrast, game UI asset`
-15. **Overcast (Mây mù):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a thick dense cloud, flat vector logo design, centered composition on a solid black background, vibrant colors of neon violet and blue, high contrast, game UI asset`
-16. **Rainy Day (Mưa ngày):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a cloud with falling raindrops, flat vector logo design, centered composition on a solid black background, vibrant colors of neon blue and purple, high contrast, game UI asset`
-17. **Stormy Day (Mưa lớn/Bão ngày):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a storm cloud with heavy rain showers, flat vector logo design, centered composition on a solid black background, vibrant colors of neon dark blue and purple, high contrast, game UI asset`
-18. **Thunderstorm Day (Sấm sét ngày):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a cloud with a bright neon lightning bolt, flat vector logo design, centered composition on a solid black background, vibrant colors of neon purple and yellow, high contrast, game UI asset`
-
-#### C. Nhóm Icon Thời tiết Đêm & Mặt trăng (Night Weather & Moon Icons)
-19. **Crescent Moon (Trăng khuyết / Trăng lưỡi liềm):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a crescent moon, flat vector logo design, centered composition on a solid black background, vibrant colors of neon yellow and violet, high contrast, game UI asset`
-20. **Full Moon (Trăng tròn):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a bright full moon, flat vector logo design, centered composition on a solid black background, vibrant colors of neon yellow and white glow, high contrast, game UI asset`
-21. **Partly Cloudy Night (Mây che trăng):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a crescent moon behind a neon cloud, flat vector logo design, centered composition on a solid black background, vibrant colors of neon blue and violet, high contrast, game UI asset`
-22. **Rainy Night (Mưa đêm):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a crescent moon behind a rain cloud with falling raindrops, flat vector logo design, centered composition on a solid black background, vibrant colors of neon blue, violet, and cyan, high contrast, game UI asset`
-23. **Stormy Night (Dông sét đêm):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a crescent moon behind a storm cloud with a bright lightning bolt, flat vector logo design, centered composition on a solid black background, vibrant colors of neon purple, blue, and yellow, high contrast, game UI asset`
-24. **Snow/Frost (Băng giá/Tuyết):**
-    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a complex glowing snowflake, flat vector logo design, centered composition on a solid black background, vibrant colors of neon cyan and ice blue, high contrast, game UI asset`
 
 
