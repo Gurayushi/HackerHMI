@@ -207,39 +207,39 @@ Dưới đây là đặc tả chi tiết linh kiện sử dụng và sơ đồ �
 
 ### 2. Sơ đồ Pinout Đấu nối Vật lý (Inter-chip & Peripheral Wiring)
 
-#### A. Liên kết RP2350 $\leftrightarrow$ ESP32-C5 (SPI, SWD, UART Flash)
+#### A. Liên kết RP2350 <-> ESP32-C5 (SPI, SWD, UART Flash)
 *   **Đường truyền dữ liệu chính SPI (Pico SPI0):**
-    *   `MISO`: RP2350 GPIO 16 $\leftrightarrow$ ESP32-C5 GPIO 16
-    *   `MOSI`: RP2350 GPIO 19 $\leftrightarrow$ ESP32-C5 GPIO 19
-    *   `SCK`: RP2350 GPIO 18 $\leftrightarrow$ ESP32-C5 GPIO 18
-    *   `CS`: RP2350 GPIO 17 $\leftrightarrow$ ESP32-C5 GPIO 17
+    *   `MISO`: RP2350 GPIO 16 <-> ESP32-C5 GPIO 16
+    *   `MOSI`: RP2350 GPIO 19 <-> ESP32-C5 GPIO 19
+    *   `SCK`: RP2350 GPIO 18 <-> ESP32-C5 GPIO 18
+    *   `CS`: RP2350 GPIO 17 <-> ESP32-C5 GPIO 17
 *   **Đường báo hiệu ngắt (Handshake interrupt):**
-    *   `Handshake`: RP2350 GPIO 22 $\leftrightarrow$ ESP32-C5 GPIO 22
+    *   `Handshake`: RP2350 GPIO 22 <-> ESP32-C5 GPIO 22
 *   **Đường nạp cứu hộ UART Bootloader (RP2350 nạp cho C5):**
-    *   `UART TX`: RP2350 GPIO 8 (Pico TX1) $\rightarrow$ ESP32-C5 RX0 (UART0)
-    *   `UART RX`: RP2350 GPIO 9 (Pico RX1) $\leftarrow$ ESP32-C5 TX0 (UART0)
-    *   `Chip Reset (EN)`: RP2350 GPIO 20 $\rightarrow$ Chân EN (Reset) của ESP32-C5
-    *   `Boot strapping (IO9)`: RP2350 GPIO 21 $\rightarrow$ Chân IO9 (Strapping pin) của ESP32-C5
+    *   `UART TX`: RP2350 GPIO 8 (Pico TX1) -> ESP32-C5 RX0 (UART0)
+    *   `UART RX`: RP2350 GPIO 9 (Pico RX1) <- ESP32-C5 TX0 (UART0)
+    *   `Chip Reset (EN)`: RP2350 GPIO 20 -> Chân EN (Reset) của ESP32-C5
+    *   `Boot strapping (IO9)`: RP2350 GPIO 21 -> Chân IO9 (Strapping pin) của ESP32-C5
 *   **Đường nạp SWD Không dây (ESP32-C5 nạp OTA cho RP2350):**
-    *   `SWCLK`: ESP32-C5 GPIO 4 $\rightarrow$ Chân SWCLK của RP2350
-    *   `SWDIO`: ESP32-C5 GPIO 5 $\leftrightarrow$ Chân SWDIO của RP2350
-    *   `RP2350 RST`: ESP32-C5 GPIO 6 $\rightarrow$ Chân RUN/RST của RP2350
+    *   `SWCLK`: ESP32-C5 GPIO 4 -> Chân SWCLK của RP2350
+    *   `SWDIO`: ESP32-C5 GPIO 5 <-> Chân SWDIO của RP2350
+    *   `RP2350 RST`: ESP32-C5 GPIO 6 -> Chân RUN/RST của RP2350
 
-#### B. Liên kết RP2350 $\leftrightarrow$ Thiết bị ngoại vi & DWIN HMI
+#### B. Liên kết RP2350 <-> Thiết bị ngoại vi & DWIN HMI
 *   **Màn hình DWIN HMI (UART0):**
-    *   `UART TX`: RP2350 GPIO 0 (TX0) $\rightarrow$ Chân RXD của màn hình DWIN
-    *   `UART RX`: RP2350 GPIO 1 (RX0) $\leftarrow$ Chân TXD của màn hình DWIN
+    *   `UART TX`: RP2350 GPIO 0 (TX0) -> Chân RXD của màn hình DWIN
+    *   `UART RX`: RP2350 GPIO 1 (RX0) <- Chân TXD của màn hình DWIN
 *   **Đầu đọc thẻ RFID 125kHz RDM6300 (UART1):**
-    *   `UART RX`: RP2350 GPIO 9 (RX1) $\leftarrow$ Chân TXD của module RDM6300
+    *   `UART RX`: RP2350 GPIO 9 (RX1) <- Chân TXD của module RDM6300
 *   **Đầu đọc thẻ NFC 13.56MHz PN532 (I2C0):**
-    *   `I2C SDA`: RP2350 GPIO 4 (SDA0) $\leftrightarrow$ Chân SDA của PN532 (kéo trở pull-up 4.7k lên 3.3V)
-    *   `I2C SCL`: RP2350 GPIO 5 (SCL0) $\leftrightarrow$ Chân SCL của PN532 (kéo trở pull-up 4.7k lên 3.3V)
+    *   `I2C SDA`: RP2350 GPIO 4 (SDA0) <-> Chân SDA của PN532 (kéo trở pull-up 4.7k lên 3.3V)
+    *   `I2C SCL`: RP2350 GPIO 5 (SCL0) <-> Chân SCL của PN532 (kéo trở pull-up 4.7k lên 3.3V)
 *   **Module Vô tuyến Sub-1GHz CC1101 (SPI1):**
-    *   `MISO`: RP2350 GPIO 12 $\leftrightarrow$ Chân MISO của CC1101
-    *   `MOSI`: RP2350 GPIO 15 $\leftrightarrow$ Chân MOSI của CC1101
-    *   `SCK`: RP2350 GPIO 14 $\leftrightarrow$ Chân SCK của CC1101
-    *   `CS`: RP2350 GPIO 13 $\leftrightarrow$ Chân CSN của CC1101
-    *   `GDO0`: RP2350 GPIO 10 $\leftarrow$ Chân GDO0 của CC1101 (Chân ngắt thu nhận sóng)
+    *   `MISO`: RP2350 GPIO 12 <-> Chân MISO của CC1101
+    *   `MOSI`: RP2350 GPIO 15 <-> Chân MOSI của CC1101
+    *   `SCK`: RP2350 GPIO 14 <-> Chân SCK của CC1101
+    *   `CS`: RP2350 GPIO 13 <-> Chân CSN của CC1101
+    *   `GDO0`: RP2350 GPIO 10 <- Chân GDO0 của CC1101 (Chân ngắt thu nhận sóng)
 *   **Hồng ngoại IR Blaster:**
-    *   `IR LED`: RP2350 GPIO 22 $\rightarrow$ Chân anode LED IR phát (điều chế băm xung 38kHz)
+    *   `IR LED`: RP2350 GPIO 22 -> Chân anode LED IR phát (điều chế băm xung 38kHz)
 
