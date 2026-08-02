@@ -149,6 +149,8 @@ Màn hình DWIN HMI tương tác với RP2350 thông qua các địa chỉ biế
 | **`0x0482`** | Text (ASCII) | Write-Only | **RAM Stats:** Nhãn chỉ số RAM thời gian thực (`"RAM: xx%"`) của Monitor Task đang xem. |
 | **`0x0484`** | Text (ASCII) | Write-Only | **Disk Stats:** Nhãn chỉ số dung lượng ổ cứng (`"Disk: xx%"`) của Monitor Task đang xem. |
 | **`0x0490`** | Text (ASCII) | Write-Only | **Deauther Mode String:** Nhãn thể hiện phân loại chế độ hoạt động hiện thời của Wi-Fi. |
+| **`0x0600-0x0606`** | Variable Icon (16-bit) | Write-Only | **Device Online Status:** Chấm tròn trạng thái Online/Offline cho 4 thiết bị (1 = Green dot, 0 = Gray dot). |
+| **`0x0610-0x0616`** | Variable Icon (16-bit) | Write-Only | **Device Session Frame:** Khung sáng neon xanh dương biểu thị có tiến trình chạy ngầm (1 = Show glowing border, 0 = Hide). |
 | **`0x5000`** | Text (ASCII) | Read-Only | **Keyboard Command Input:** Vùng đệm bàn phím ảo của DWIN. Mỗi khi người dùng gõ lệnh hoặc nhập thông số cấu hình và nhấn Enter, DWIN sẽ ghi vào địa chỉ này và gửi sự kiện ngắt báo cho RP2350 đọc. |
 
 ---
@@ -187,6 +189,7 @@ Khi người dùng nhấn các nút bấm cảm ứng trên màn hình DWIN, HMI
 *   `CMD_SSH_HIDE:<id>` / `CMD_MONITOR_HIDE:<id>`: Thu nhỏ task SSH/Monitor có ID tương ứng xuống nền.
 *   `CMD_SSH_RESUME:<id>` / `CMD_MONITOR_RESUME:<id>`: Phục hồi và mở lại giao diện hiển thị của task.
 *   `CMD_SSH_KILL:<id>` / `CMD_MONITOR_KILL:<id>`: Giải phóng tài nguyên và ngắt socket kết nối của task có ID tương ứng.
+*   `DEV_SEL:<id>`: Lựa chọn thiết bị đích trên Trang 8 (Device Selector) để kết nối SSH hoặc Monitor.
 
 #### E. Nhóm Lệnh Cấu hình hệ thống (Gửi trực tiếp vào NVS Storage của C5)
 *   `wifi_ssid=<value>`: Cài đặt SSID Wi-Fi để ESP32-C5 kết nối internet.
