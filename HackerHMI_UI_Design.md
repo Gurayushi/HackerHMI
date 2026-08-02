@@ -8,7 +8,7 @@ Tài liệu này cung cấp sơ đồ thiết kế UI/UX cho màn hình **DWIN 7
 
 Dưới đây là bản thiết kế mockup trực quan cho **Trang chủ Dashboard (Page 0)** với tông màu xám tối và các chi tiết điểm nhấn neon (Cyan & Purple):
 
-![DWIN Main Dashboard Mockup](DGUS/image/page0_dashboard.png)
+![DWIN Main Dashboard Mockup](file:///D:/HackerHMI/DGUS/image/page0_dashboard.png)
 
 ### Bố cục Không gian (Layout Grid - 1024x600)
 *   **Sidebar Navigation (Trái - Rộng 80px):** Chứa 7 Icon chức năng:
@@ -79,7 +79,7 @@ Dưới đây là bản thiết kế mockup trực quan cho **Trang chủ Dashbo
 ### Trang 6: SSH Device Manager Page (Trang Quản lý & Lựa chọn thiết bị SSH)
 Trang hiển thị danh sách các máy chủ có thể kết nối SSH khi bấm chọn biểu tượng SSH Terminal từ màn hình chính:
 
-![DWIN Device Selector Mockup](DGUS/image/page6_7_selector.png)
+![DWIN Device Selector Mockup](file:///D:/HackerHMI/DGUS/image/page6_7_selector.png)
 
 *   **Danh sách thiết bị (List of 4 Devices):**
     *   *Widget:* Variable Icon (Chấm tròn trạng thái Online/Offline)
@@ -121,7 +121,7 @@ Trang hiển thị danh sách các máy chủ có thể theo dõi tài nguyên v
 ### Trang 5: SSH Terminal Console (Màn hình điều khiển dòng lệnh)
 Giao diện gõ lệnh từ xa cho máy chủ được lựa chọn, hỗ trợ mã màu ANSI và bộ đệm lịch sử cuộn trang:
 
-![DWIN SSH Terminal Mockup](DGUS/image/page5_ssh.png)
+![DWIN SSH Terminal Mockup](file:///D:/HackerHMI/DGUS/image/page5_ssh.png)
 
 *   **Vùng hiển thị Terminal (Console Area):**
     *   *Widget:* Text Display (ASCII)
@@ -133,7 +133,7 @@ Giao diện gõ lệnh từ xa cho máy chủ được lựa chọn, hỗ trợ 
 ### Trang 10: Resource Monitor Graph (Đồ thị Giám sát Tài nguyên)
 Vẽ trực quan 3 thông số CPU, RAM và Disk của thiết bị được kết nối theo dạng thời gian thực (60s gần nhất):
 
-![DWIN Resource Monitor Mockup](DGUS/image/page10_monitor.png)
+![DWIN Resource Monitor Mockup](file:///D:/HackerHMI/DGUS/image/page10_monitor.png)
 
 *   **Nhãn chỉ số Text:**
     *   *Widget:* Text Display (ASCII)
