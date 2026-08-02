@@ -203,6 +203,9 @@ Nếu bạn muốn tự generate các icon riêng biệt với chất lượng c
 ### Prompt cấu trúc chung (Design Style Token):
 > `Futuristic cyberpunk neon app icon style, flat vector logo design, centered composition on a solid black background, glowing outline, vibrant colors of neon purple, neon pink, and cyan, high contrast, clean shapes, game UI asset`
 
+### Prompt để generate toàn bộ 12 icon trên cùng 1 tấm ảnh (Sprite Sheet Grid):
+> `A clean game UI sprite sheet containing 12 distinct cyberpunk neon app icons arranged in a neat 4x3 grid on a solid black background. There is wide black space and clear separation between each icon. The 12 icons are: 1. Home house, 2. WiFi signal antenna, 3. USB computer keyboard, 4. RFID keycard, 5. Radio tower with waves, 6. Infrared remote control, 7. Terminal command prompt window '>_', 8. CPU chip with pulse line, 9. Sunny sun, 10. Weather cloud, 11. Rain cloud, 12. Lightning cloud. All icons are drawn as vibrant glowing vector outlines in neon purple, pink, and cyan. Flat vector asset sheet, black background, no overlapping elements.`
+
 ### Danh sách Prompt chi tiết cho từng Icon:
 
 1.  **Icon Home (Trang chủ):**
