@@ -24,7 +24,7 @@ Hệ thống hoạt động theo mô hình **Đa xử lý không đối xứng (
 *   **Luồng hoạt động:** 
     1. Khi người dùng thao tác bấm nút tấn công hoặc quét trên màn hình, DWIN HMI truyền dữ liệu chuỗi (`CMD_DEAUTH_START`, `CMD_DEAUTH_NUKE`, `DEAUTH_SEL:`) qua UART -> RP2350.
     2. RP2350 đóng gói chuỗi này đẩy tiếp qua đường truyền SPI -> ESP32-C5.
-    3. ESP32-C5 tiếp nhận lệnh, dùng thư viện Wi-Fi đã vá (`libnet80211.a`) để bypass kiểm duyệt của Espressif, trực tiếp phát các khung dữ liệu thô (raw frames) ra môi trường.
+    3. ESP32-C5 tiếp nhận lệnh, dùng thư viện Wi-Fi đã vá (`libnet80211.a`) tích hợp từ repository [esp32-c5-deauth](https://github.com/maxbrito500/esp32-c5-deauth) của tác giả **maxbrito500** để bypass kiểm duyệt của Espressif, trực tiếp phát các khung dữ liệu thô (raw frames) ra môi trường.
     4. ESP32-C5 thu thập log trạng thái hoặc danh sách AP quét được, đẩy ngược chuỗi `"DEAUTH_LOG:<nội dung>"` qua SPI về RP2350 hiển thị lên HMI.
 *   **Cấp phát bộ nhớ:**
     *   *RP2350:* Không lưu trữ trạng thái AP/Client quét được, giải phóng tối đa RAM.

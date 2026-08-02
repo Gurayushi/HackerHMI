@@ -15,7 +15,7 @@ Powered by the bleeding-edge **Raspberry Pi RP2350** for graphics/PIO manipulati
     *   🌐 **Wi-Fi/BLE Marauder:** Deauth and BLE spam attacks powered by ESP32-C5.
 *   **Silky Smooth UI:** Features a custom Ring-Buffer algorithm enabling full 50KB scrollback history on the DWIN HMI, rendering ANSI colors at a blazing `921600 baud`.
 *   **Dual OTA Updates:** ESP32-C5 updates itself via Wi-Fi and acts as an onboard SWD Programmer to flash the RP2350 wirelessly.
-*   **Integrated Wi-Fi Deauther:** Incorporates a tailored, hardware-integrated core of the popular [ESP32-Deauther](https://github.com/SpacehuhnTech/esp8266_deauther) (originally by Spacehuhn Technologies). The original author's native web panel and mobile app controls have been stripped out. Instead, all low-level attack routines, packet engines, and configuration CLI have been fully mapped directly onto the physical DWIN HMI screen via SPI communication.
+*   **Integrated Wi-Fi Deauther:** Incorporates a tailored, hardware-integrated core based on the [esp32-c5-deauth](https://github.com/maxbrito500/esp32-c5-deauth) repository by **maxbrito500**. The original author's native web panel and mobile app controls have been stripped out. Instead, all low-level attack routines, packet engines, and configuration CLI have been fully mapped directly onto the physical DWIN HMI screen via SPI communication.
 
 ## 🛠️ Hardware Stack
 *   **Main Core:** Raspberry Pi Pico 2 (RP2350)
