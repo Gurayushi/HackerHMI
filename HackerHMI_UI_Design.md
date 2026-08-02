@@ -65,27 +65,47 @@ Dưới đây là bản thiết kế mockup trực quan cho **Trang chủ Dashbo
     *   *VP Address:* `0x0302` (dải giá trị 0 - 100)
     *   *Tọa độ:* X=150, Y=380, Rộng=700, Cao=30
 
-### Trang 8: Device Selector Page (Trang Quản lý & Lựa chọn thiết bị)
-Trang trung gian hiển thị danh sách các máy chủ có thể kết nối trước khi vào màn hình SSH Terminal hoặc Resource Monitor:
+### Trang 6: SSH Device Manager Page (Trang Quản lý & Lựa chọn thiết bị SSH)
+Trang hiển thị danh sách các máy chủ có thể kết nối SSH khi bấm chọn biểu tượng SSH Terminal từ màn hình chính:
 
 ![DWIN Device Selector Mockup](C:\Users\gurayushi\.gemini\antigravity-ide\brain\c8e50d47-ddd0-4373-a153-ed09e9b90385\dwin_device_selector_mockup_1785690423661.png)
 
-*   **Bảng điều khiển danh sách thiết bị (List of 4 Devices):**
-    *   *Widget:* Variable Icon (hiển thị trạng thái Online/Offline dạng chấm tròn)
-        *   Device 1 Status (Online/Offline): VP `0x0600` (1 = `🟢` Green Icon, 0 = `⚫` Gray Icon)
-        *   Device 2 Status (Online/Offline): VP `0x0602`
-        *   Device 3 Status (Online/Offline): VP `0x0604`
-        *   Device 4 Status (Online/Offline): VP `0x0606`
-    *   *Widget:* Variable Icon (hiển thị Khung sáng xanh neon khi có session chạy ngầm hoạt động)
-        *   Device 1 Active Session: VP `0x0610` (1 = Hiện khung xanh neon phát sáng, 0 = Ẩn khung)
-        *   Device 2 Active Session: VP `0x0612`
-        *   Device 3 Active Session: VP `0x0614`
-        *   Device 4 Active Session: VP `0x0616`
+*   **Danh sách thiết bị (List of 4 Devices):**
+    *   *Widget:* Variable Icon (Chấm tròn trạng thái Online/Offline)
+        *   Device 1 Status: VP `0x0600` (1 = `🟢` Green, 0 = `⚫` Gray)
+        *   Device 2 Status: VP `0x0602`
+        *   Device 3 Status: VP `0x0604`
+        *   Device 4 Status: VP `0x0606`
+    *   *Widget:* Variable Icon (Khung sáng xanh neon khi có session SSH chạy ngầm)
+        *   Device 1 Active SSH Session: VP `0x0610` (1 = Hiện khung xanh neon phát sáng, 0 = Ẩn khung)
+        *   Device 2 Active SSH Session: VP `0x0612`
+        *   Device 3 Active SSH Session: VP `0x0614`
+        *   Device 4 Active SSH Session: VP `0x0616`
     *   *Widget:* Return Key Code (Bấm chọn thiết bị)
         *   Device 1 Touch Box: `(X=150, Y=120, Rộng=350, Cao=100)`, Value = `DEV_SEL:1`
         *   Device 2 Touch Box: `(X=520, Y=120, Rộng=350, Cao=100)`, Value = `DEV_SEL:2`
         *   Device 3 Touch Box: `(X=150, Y=240, Rộng=350, Cao=100)`, Value = `DEV_SEL:3`
         *   Device 4 Touch Box: `(X=520, Y=240, Rộng=350, Cao=100)`, Value = `DEV_SEL:4`
+
+### Trang 7: Monitor Device Manager Page (Trang Quản lý & Lựa chọn thiết bị Monitor)
+Trang hiển thị danh sách các máy chủ có thể theo dõi tài nguyên vẽ đồ thị khi bấm chọn biểu tượng Resource Monitor từ màn hình chính:
+
+*   **Danh sách thiết bị (List of 4 Devices):**
+    *   *Widget:* Variable Icon (Chấm tròn trạng thái Online/Offline)
+        *   Device 1 Status: VP `0x0700` (1 = `🟢` Green, 0 = `⚫` Gray)
+        *   Device 2 Status: VP `0x0702`
+        *   Device 3 Status: VP `0x0704`
+        *   Device 4 Status: VP `0x0706`
+    *   *Widget:* Variable Icon (Khung sáng xanh neon khi có session Monitor chạy ngầm)
+        *   Device 1 Active Monitor Session: VP `0x0710` (1 = Hiện khung xanh neon phát sáng, 0 = Ẩn khung)
+        *   Device 2 Active Monitor Session: VP `0x0712`
+        *   Device 3 Active Monitor Session: VP `0x0714`
+        *   Device 4 Active Monitor Session: VP `0x0716`
+    *   *Widget:* Return Key Code (Bấm chọn thiết bị)
+        *   Device 1 Touch Box: `(X=150, Y=120, Rộng=350, Cao=100)`, Value = `MON_SEL:1`
+        *   Device 2 Touch Box: `(X=520, Y=120, Rộng=350, Cao=100)`, Value = `MON_SEL:2`
+        *   Device 3 Touch Box: `(X=150, Y=240, Rộng=350, Cao=100)`, Value = `MON_SEL:3`
+        *   Device 4 Touch Box: `(X=520, Y=240, Rộng=350, Cao=100)`, Value = `MON_SEL:4`
 
 ---
 
@@ -97,27 +117,24 @@ graph TD
     P0 -->|Click Sidebar 2| P2[Page 2: BadUSB & Stream Deck]
     P0 -->|Click Sidebar 3| P3[Page 3: RFID/NFC Cloner]
     P0 -->|Click Sidebar 4| P4[Page 4: RF CC1101 / IR]
-    P0 -->|Click Sidebar 5 SSH Mode| P8[Page 8: Device Manager]
-    P0 -->|Click Sidebar 6 Monitor Mode| P8
-    P0 -->|Click Sidebar 7| P7[Page 7: Task Manager]
+    P0 -->|Click Sidebar 5 SSH Mode| P6[Page 6: SSH Device Manager]
+    P0 -->|Click Sidebar 6 Monitor Mode| P7[Page 7: Monitor Device Manager]
 
     P1 -->|Press HIDE| P0
     P2 -->|Press HIDE| P0
     P3 -->|Press HIDE| P0
     P4 -->|Press HIDE| P0
     
-    P8 -->|Select Device in SSH Mode| P5[Page 5: SSH Terminal]
-    P8 -->|Select Device in Monitor Mode| P6[Page 6: Monitor Graphs]
-    P8 -->|Press BACK| P0
+    P6 -->|Select Device DEV_SEL:id| P5[Page 5: SSH Terminal]
+    P6 -->|Press BACK| P0
+    
+    P7 -->|Select Device MON_SEL:id| P10[Page 10: Monitor Graphs]
+    P7 -->|Press BACK| P0
     
     P5 -->|Virtual Keyboard Button| PopKB[Popup: Bàn phím ảo 75%]
     P5 -->|Press HIDE| P0
     
-    P6 -->|Press HIDE| P0
-    
-    P7 -->|Select Task & Resume| P5
-    P7 -->|Select Monitor & Resume| P6
-    P7 -->|Press HIDE| P0
+    P10 -->|Press HIDE| P0
 ```
 
 ---
