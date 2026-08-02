@@ -52,6 +52,7 @@ Dưới đây là bản thiết kế mockup trực quan cho **Trang chủ Dashbo
     *   *Nhiệt độ (Temperature):* VP `0x0160` (16-bit Integer, e.g. `28` displays as `28 °C`) - Tọa độ: X=820, Y=20
     *   *Độ ẩm (Humidity):* VP `0x0162` (16-bit Integer, e.g. `75` displays as `75 %`) - Tọa độ: X=920, Y=20
     *   *Icon Thời tiết (Weather Icon):* VP `0x0164` (Variable Icon: 0 = Nắng, 1 = Mây, 2 = Mưa, 3 = Dông sét) - Tọa độ: X=780, Y=15
+    *   *Chất lượng không khí (AQI):* VP `0x0166` (16-bit Integer, e.g. `35` displays as `35 AQI`) - Tọa độ: X=870, Y=45
 
 ### Trang 1: Wi-Fi Deauther
 *   **Console Output Area:**

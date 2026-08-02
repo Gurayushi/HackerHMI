@@ -159,6 +159,49 @@ static bool get_weather(double lat, double lon, int *temp, int *humidity, int *i
     return false;
 }
 
+static bool get_air_quality(double lat, double lon, int *aqi) {
+    if (response_buffer) {
+        free(response_buffer);
+        response_buffer = NULL;
+    }
+    response_len = 0;
+
+    char url[256];
+    snprintf(url, sizeof(url), "http://air-quality-api.open-meteo.com/v1/air-quality?latitude=%f&longitude=%f&current=us_aqi", lat, lon);
+
+    esp_http_client_config_t config = {
+        .url = url,
+        .event_handler = http_event_handler,
+    };
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (!client) {
+        ESP_LOGE(TAG, "Failed to init HTTP client for AQI");
+        return false;
+    }
+    esp_err_t err = esp_http_client_perform(client);
+    if (err == ESP_OK && response_buffer) {
+        cJSON *json = cJSON_Parse(response_buffer);
+        if (json) {
+            cJSON *current = cJSON_GetObjectItem(json, "current");
+            if (current) {
+                cJSON *aqi_item = cJSON_GetObjectItem(current, "us_aqi");
+                if (aqi_item) {
+                    *aqi = aqi_item->valueint;
+                    ESP_LOGI(TAG, "Air Quality: AQI=%d", *aqi);
+                    cJSON_Delete(json);
+                    esp_http_client_cleanup(client);
+                    return true;
+                }
+            }
+            cJSON_Delete(json);
+        }
+    } else {
+        ESP_LOGE(TAG, "HTTP AQI request failed: %s", esp_err_to_name(err));
+    }
+    esp_http_client_cleanup(client);
+    return false;
+}
+
 static void weather_task(void *pvParameters) {
     ESP_LOGI(TAG, "Weather Task started. Waiting for Wi-Fi...");
     EventGroupHandle_t wifi_eg = get_wifi_event_group();
@@ -190,14 +233,18 @@ static void weather_task(void *pvParameters) {
         int temp = 25;
         int humidity = 70;
         int icon_id = 0;
+        int aqi = 50; // Mặc định AQI trung bình/tốt
         
-        if (get_weather(lat, lon, &temp, &humidity, &icon_id)) {
-            // Định dạng chuỗi gửi sang RP2350: WTH:temp:humid:icon
+        bool w_ok = get_weather(lat, lon, &temp, &humidity, &icon_id);
+        bool aq_ok = get_air_quality(lat, lon, &aqi);
+        
+        if (w_ok || aq_ok) {
+            // Định dạng chuỗi gửi sang RP2350: WTH:temp:humid:icon:aqi
             char spi_msg[64];
-            snprintf(spi_msg, sizeof(spi_msg), "WTH:%d:%d:%d", temp, humidity, icon_id);
+            snprintf(spi_msg, sizeof(spi_msg), "WTH:%d:%d:%d:%d", temp, humidity, icon_id, aqi);
             send_to_rp2350(spi_msg);
         } else {
-            ESP_LOGE(TAG, "Failed to update weather data.");
+            ESP_LOGE(TAG, "Failed to update weather or air quality data.");
         }
         
         // Chờ 30 phút (30 * 60 * 1000 ms)
