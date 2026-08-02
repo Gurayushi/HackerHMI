@@ -190,3 +190,43 @@ Sau khi thiết kế các file ảnh nền (BMP/PNG) và Icon trong DGUS Tool:
 3.  Tắt nguồn màn hình DWIN, cắm thẻ nhớ vào khe cắm thẻ MicroSD ở mặt sau màn hình.
 4.  Cấp nguồn cho màn hình. Màn hình DWIN sẽ hiển thị màu xanh và chạy chữ nạp file liên tục (`SD Card Update...`).
 5.  Khi màn hình hiển thị `SD Card Update OK!`, ngắt nguồn, rút thẻ nhớ và bật lại nguồn. Giao diện mới sẽ hiển thị.
+
+---
+
+## 5. Danh sách Prompt để tự tạo Icon (Google Imagen / Midjourney / DALL-E)
+
+Nếu bạn muốn tự generate các icon riêng biệt với chất lượng cao nhất bằng AI, hãy sử dụng cấu trúc prompt mẫu dưới đây. 
+
+> [!TIP]
+> **Hướng dẫn tách nền:** Hãy dùng công cụ Remove.bg hoặc Photoshop/Figma để loại bỏ nền đen `solid black` thành dạng trong suốt (`transparent`) trước khi import vào DGUS Tool.
+
+### Prompt cấu trúc chung (Design Style Token):
+> `Futuristic cyberpunk neon app icon style, flat vector logo design, centered composition on a solid black background, glowing outline, vibrant colors of neon purple, neon pink, and cyan, high contrast, clean shapes, game UI asset`
+
+### Danh sách Prompt chi tiết cho từng Icon:
+
+1.  **Icon Home (Trang chủ):**
+    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a modern smart house, flat vector logo design, centered composition on a solid black background, vibrant colors of neon purple and pink, high contrast, game UI asset`
+2.  **Icon WiFi (Wi-Fi Deauther):**
+    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a wireless WiFi symbol with a small radar antenna, flat vector logo design, centered composition on a solid black background, vibrant colors of neon cyan and violet, high contrast, game UI asset`
+3.  **Icon Keyboard (BadUSB & Stream Deck):**
+    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a computer keyboard with a USB connector cable, flat vector logo design, centered composition on a solid black background, vibrant colors of neon pink and cyan, high contrast, game UI asset`
+4.  **Icon RFID/NFC (Sao chép thẻ):**
+    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a contact-less RFID chip card with signal waves, flat vector logo design, centered composition on a solid black background, vibrant colors of neon purple and blue, high contrast, game UI asset`
+5.  **Icon Radio (RF CC1101):**
+    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a radio transmitter tower emitting waves, flat vector logo design, centered composition on a solid black background, vibrant colors of neon cyan and purple, high contrast, game UI asset`
+6.  **Icon IR Blaster (Hồng ngoại):**
+    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a remote control with infrared waves, flat vector logo design, centered composition on a solid black background, vibrant colors of neon pink and purple, high contrast, game UI asset`
+7.  **Icon SSH Terminal (Dòng lệnh):**
+    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a terminal command prompt window showing ">_", flat vector logo design, centered composition on a solid black background, vibrant colors of neon cyan and green, high contrast, game UI asset`
+8.  **Icon Task Manager (Quản lý đa nhiệm):**
+    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a microchip with a heartbeat pulse graph, flat vector logo design, centered composition on a solid black background, vibrant colors of neon pink and blue, high contrast, game UI asset`
+9.  **Icon Weather Sunny (Nắng):**
+    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a bright sun with rays, flat vector logo design, centered composition on a solid black background, vibrant colors of neon yellow and pink, high contrast, game UI asset`
+10. **Icon Weather Cloudy (Nhiều mây):**
+    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a fluffy cloud, flat vector logo design, centered composition on a solid black background, vibrant colors of neon violet and blue, high contrast, game UI asset`
+11. **Icon Weather Rainy (Mưa):**
+    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a cloud with glowing raindrops, flat vector logo design, centered composition on a solid black background, vibrant colors of neon blue and purple, high contrast, game UI asset`
+12. **Icon Weather Stormy (Sấm sét):**
+    *   *Prompt:* `Futuristic cyberpunk neon app icon style, a glowing outline of a cloud with a bright neon lightning bolt, flat vector logo design, centered composition on a solid black background, vibrant colors of neon purple and yellow, high contrast, game UI asset`
+
