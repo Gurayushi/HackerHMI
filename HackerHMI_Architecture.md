@@ -43,6 +43,10 @@ Hệ thống hoạt động theo mô hình **Đa xử lý không đối xứng (
     1. Khi người dùng thao tác nhấn nút trên giao diện Stream Deck của HMI, lệnh UART truyền về RP2350.
     2. RP2350 phân tách lệnh, sử dụng driver USB HID (chạy qua TinyUSB trên RP2350) đóng gói các gói tin báo cáo phím (Keyboard/Consumer reports) tương ứng và gửi thẳng qua cổng USB-C vật lý sang máy tính điều khiển.
 *   **Cấp phát bộ nhớ:** Chạy hoàn toàn trên bộ nhớ RAM của RP2350 (khoảng 3KB cho cấu trúc mapping phím tắt macro). ESP32-C5 không tham gia vào luồng truyền USB HID này để giữ an toàn tối đa cho CPU phụ.
+*   **Cơ chế đồ họa hiển thị (Icon & GIF hoạt họa):**
+    *   **Xử lý nội bộ trên DWIN HMI (Offloading):** Để đạt phản hồi hình ảnh 60FPS không trễ, toàn bộ tài nguyên Icon (định dạng ảnh tĩnh) và GIF hoạt họa (các frame chuyển động) của từng phím tắt được thiết kế trực tiếp trong phần mềm DGUS của DWIN dưới dạng file **ICL (Icon Library)**. 
+    *   **Trạng thái phím Pressed/Released:** Các thành phần phím bấm trên HMI được cấu hình hiệu ứng "Touch Effect" tự động hoán đổi ID Icon giữa hai trạng thái *Nhấn xuống (Pressed)* và *Nhả ra (Released)*, hoặc kích hoạt hoạt ảnh GIF chạy cục bộ mà không cần RP2350 can thiệp.
+    *   **Thay đổi Icon động theo Profile:** RP2350 có khả năng điều khiển thay đổi Icon/GIF hiển thị của các nút từ xa thông qua việc gửi lệnh ghi trực tiếp ID Icon (`dwin_write_text` hoặc ghi giá trị số nguyên) xuống địa chỉ VP điều khiển của phím bấm đó (Ví dụ: ghi giá trị profile ứng dụng đang hoạt động tại cổng `0x0310` để tự động hoán đổi giao diện bộ icon tương ứng).
 *   **Cấu trúc chương trình:** 
     *   *RP2350:* `src/usb/hid_device.h` và `src/usb/badusb.h`. Tích hợp phân giải phím tắt trong hàm xử lý chính ở `src/main.c`.
  
