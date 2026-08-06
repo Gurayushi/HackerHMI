@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <title>HackerHMI IR Uploader Preview</title>
+  <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>
+  <link href='https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap' rel='stylesheet'>
+  <style>
+    :root {
+      --bg-color: #030307;
+      --container-bg: rgba(6, 6, 12, 0.85);
+      --border-color: rgba(139, 92, 246, 0.15);
+      --text-primary: #f3f4f6;
+      --text-secondary: #a78bfa;
+      --accent-neon: #bc39fa;
+      --accent-glow: rgba(188, 57, 250, 0.5);
+      --neon-blue: #3b82f6;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { 
+      font-family: 'Outfit', sans-serif; 
+      background-color: var(--bg-color); 
+      color: var(--text-primary); 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      min-height: 100vh; 
+      margin: 0; 
+      padding: 1rem; 
+      overflow-x: hidden; 
+      background-image: radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(188, 57, 250, 0.12) 0%, transparent 40%); 
+    }
+    .container { 
+      background: var(--container-bg); 
+      border: 2px solid var(--border-color); 
+      padding: 2.5rem 2rem; 
+      border-radius: 24px; 
+      box-shadow: 0 0 30px rgba(139, 92, 246, 0.15), 0 15px 50px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(139, 92, 246, 0.1); 
+      backdrop-filter: blur(20px); 
+      width: 100%; 
+      max-width: 500px; 
+      text-align: center; 
+      position: relative; 
+      z-index: 10; 
+      transition: all 0.4s ease; 
+    }
+    .container:hover { 
+      border-color: rgba(188, 57, 250, 0.4); 
+      box-shadow: 0 0 40px rgba(188, 57, 250, 0.25), 0 15px 50px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(188, 57, 250, 0.15); 
+    }
+    h1 { 
+      font-size: 2rem; 
+      font-weight: 700; 
+      margin: 0 0 0.5rem 0; 
+      background: linear-gradient(135deg, #f472b6, #c084fc, #6366f1); 
+      -webkit-background-clip: text; 
+      -webkit-text-fill-color: transparent; 
+      letter-spacing: -0.03em; 
+      text-shadow: 0 0 20px rgba(188, 57, 250, 0.3); 
+    }
+    .subtitle { 
+      color: var(--text-secondary); 
+      font-size: 0.9rem; 
+      margin-bottom: 2rem; 
+      font-weight: 400; 
+      text-transform: uppercase; 
+      letter-spacing: 0.08em; 
+    }
+    .upload-box { 
+      border: 2px dashed rgba(188, 57, 250, 0.3); 
+      border-radius: 16px; 
+      padding: 2rem 1rem; 
+      margin-bottom: 1.5rem; 
+      cursor: pointer; 
+      transition: all 0.3s ease; 
+      background: rgba(139, 92, 246, 0.01); 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+    }
+    .upload-box:hover { 
+      border-color: var(--accent-neon); 
+      background: rgba(188, 57, 250, 0.04); 
+      box-shadow: 0 0 20px rgba(188, 57, 250, 0.2); 
+    }
+    .upload-box svg { 
+      width: 40px; 
+      height: 40px; 
+      fill: none; 
+      stroke: #a78bfa; 
+      stroke-width: 1.5; 
+      margin-bottom: 0.8rem; 
+      transition: all 0.3s ease; 
+    }
+    .upload-box:hover svg { 
+      stroke: var(--accent-neon); 
+      transform: translateY(-3px); 
+    }
+    #uploadText { 
+      font-size: 0.85rem; 
+      color: #9ca3af; 
+      word-break: break-all; 
+    }
+    textarea { 
+      width: 100%; 
+      height: 150px; 
+      background: rgba(6, 6, 12, 0.6); 
+      border: 1.5px solid rgba(139, 92, 246, 0.2); 
+      color: #fff; 
+      border-radius: 12px; 
+      padding: 12px; 
+      font-family: monospace; 
+      font-size: 0.8rem; 
+      resize: none; 
+      outline: none; 
+      transition: border-color 0.3s; 
+    }
+    textarea:focus { 
+      border-color: var(--accent-neon); 
+      box-shadow: 0 0 10px rgba(188, 57, 250, 0.2); 
+    }
+    .btn { 
+      background: linear-gradient(135deg, #c084fc, #8b5cf6, #4f46e5); 
+      color: white; 
+      border: none; 
+      padding: 0.9rem 1.5rem; 
+      border-radius: 12px; 
+      font-weight: 600; 
+      font-size: 0.9rem; 
+      cursor: pointer; 
+      width: 100%; 
+      transition: all 0.25s ease; 
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); 
+      margin-top: 1.5rem; 
+      border: 1px solid rgba(255, 255, 255, 0.1); 
+    }
+    .btn:hover { 
+      transform: translateY(-2px); 
+      box-shadow: 0 0 25px rgba(188, 57, 250, 0.6); 
+    }
+    .btn:active { 
+      transform: translateY(1px); 
+    }
+    #status { 
+      margin-top: 1.2rem; 
+      font-size: 0.9rem; 
+      font-weight: 600; 
+      color: var(--accent-neon); 
+      min-height: 20px; 
+    }
+  </style>
+</head>
+<body>
+<div class='container'>
+  <h1>HackerHMI IR Uploader</h1>
+  <div class='subtitle'>Tải tệp tin .ir lên RP2350</div>
+  
+  <!-- Hộp kéo thả file -->
+  <div class='upload-box' id='dropZone'>
+    <svg viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke='#a78bfa' stroke-width='1.5' d='M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z'/></svg>
+    <div id='uploadText'>Kéo thả file .ir vào đây hoặc Click để chọn file</div>
+    <input type='file' id='fileInput' style='display:none' accept='.ir'>
+  </div>
+  
+  <!-- Hộp dán text trực tiếp -->
+  <div style='text-align: left; margin: 1rem 0;'>
+    <span style='color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.5rem;'>HOẶC DÁN NỘI DUNG TẠI ĐÂY</span>
+    <textarea id='pasteArea' placeholder='Filetype: IR signals file&#10;Version: 1&#10;...&#10;name: Power&#10;type: parsed&#10;protocol: NEC&#10;address: 07 00 00 00&#10;command: 02 00 00 00'></textarea>
+  </div>
+  
+  <button class='btn' onclick='submitIR()'>UPLOAD LÊN THIẾT BỊ</button>
+  <div id='status'></div>
+</div>
+
+<script>
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const pasteArea = document.getElementById('pasteArea');
+  const statusDiv = document.getElementById('status');
+  let fileContent = '';
+
+  // Click để chọn file
+  dropZone.onclick = () => fileInput.click();
+  fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      document.getElementById('uploadText').innerText = file.name;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        fileContent = evt.target.result;
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Kéo thả file (Drag & Drop)
+  dropZone.ondragover = (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#bc39fa';
+    dropZone.style.background = 'rgba(188, 57, 250, 0.08)';
+  };
+  dropZone.ondragleave = () => {
+    dropZone.style.borderColor = 'rgba(188, 57, 250, 0.3)';
+    dropZone.style.background = 'rgba(139, 92, 246, 0.01)';
+  };
+  dropZone.ondrop = (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = 'rgba(188, 57, 250, 0.3)';
+    dropZone.style.background = 'rgba(139, 92, 246, 0.01)';
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      document.getElementById('uploadText').innerText = file.name;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        fileContent = evt.target.result;
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  function submitIR() {
+    let content = fileContent || pasteArea.value;
+    if (!content.trim()) {
+      statusDiv.innerText = 'Vui lòng chọn file hoặc dán nội dung!';
+      statusDiv.style.color = '#ef4444';
+      return;
+    }
+    statusDiv.innerText = 'Đang tải lên... (Mô phỏng Preview)';
+    statusDiv.style.color = '#bc39fa';
+    
+    // Giả lập phản hồi cho phiên bản Preview
+    setTimeout(() => {
+      statusDiv.innerText = 'Tải lên Thành công! Thiết bị đang phát tín hiệu...';
+      statusDiv.style.color = '#10b981';
+    }, 1000);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "dwin-dgus-mcp": {
+      "command": "python",
+      "args": [
+        "D:\\HackerHMI\\tools\\dwin_dgus_mcp_server.py"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

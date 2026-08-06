@@ -11,6 +11,10 @@ idf_component_register(
         "deauther/led.c"
         "deauther/cli.c"
         "deauther/task_manager.c"
+        "deauther/wifi_database.c"
+        "deauther/wifi_auto_connect.c"
+        "deauther/tag_database.c"
+        "ota/ir_web_server.c"
         "weather/weather_client.c"
     INCLUDE_DIRS 
         "."

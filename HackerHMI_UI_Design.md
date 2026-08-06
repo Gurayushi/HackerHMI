@@ -14,14 +14,13 @@ Dưới đây là bản thiết kế mockup trực quan cho **Trang chủ Dashbo
 *   **Sidebar Navigation (Trái - Rộng 80px):** Chứa 7 Icon chức năng:
     1.  *Dashboard Home* (Trang chủ)
     2.  *Wi-Fi Deauther* (Tấn công Wi-Fi)
-    3.  *BadUSB & Stream Deck* (Macro pad)
-    4.  *RFID/NFC Cloner* (Sao chép thẻ)
-    5.  *Radio CC1101 / IR* (RF & Hồng ngoại)
+    3.  *BadUSB & Stream Deck* (Macro pad / Multi-touch Touchpad)
+    4.  *RFID/NFC/iButton Cloner* (Sao chép thẻ từ & iButton)
+    5.  *Radio CC1101 / IR* (Sub-GHz KeeLoq/De Bruijn & IR RX/Universal)
     6.  *SSH Terminal* (Điều khiển console)
     7.  *Task Manager* (Quản lý đa nhiệm)
-*   **Main Header (Trên - Cao 60px):** Hiển thị thanh trạng thái kết nối Wi-Fi (SSID, RSSI), địa chỉ IP, trạng thái VPN Tailscale (neon green nếu connected), và dung lượng pin hệ thống.
+
 ### Hệ màu sắc Thiết kế Neon Cyberpunk (Design Color Tokens)
-Đồng bộ theo bảng màu CSS của trạm nạp OTA `index.html`:
 
 | Thành phần | Mã màu RGB Hex | Hệ màu DWIN (RGB565) | Mô tả phong cách hiển thị |
 | :--- | :---: | :---: | :--- |
@@ -35,180 +34,62 @@ Dưới đây là bản thiết kế mockup trực quan cho **Trang chủ Dashbo
 
 ---
 
-## 2. Đặc tả Cấu hình Widget DGUS cho từng Trang
-
-Để giao diện hoạt động chính xác với RP2350, các widget trong DGUS Tool phải được cấu hình đúng tọa độ và địa chỉ VP:
+## 2. Đặc tả Cấu hình Widget DGUS cho từng Trang (100% Protocol Parity Release)
 
 ### Trang 0: Dashboard Home
 *   **System Log Terminal:**
-    *   *Widget:* Text Display (ASCII)
-    *   *VP Address:* `0x0098`
-    *   *Tọa độ:* X=120, Y=180, Rộng=800, Cao=380
-    *   *Cấu hình chữ:* Font size = 16, Font Color = Neon Green (`0x07E0`), Align = Left, Line spacing = 4.
-*   **System Status indicators:**
-    *   *Widget:* Variable Icon (hiển thị trạng thái kết nối)
-    *   *VP Address:* `0x0150` (0 = Disconnected, 1 = Wi-Fi connected, 2 = VPN Active).
-*   **Weather Widget (Thông tin thời tiết):**
-    *   *Nhiệt độ (Temperature):* VP `0x0160` (16-bit Integer, e.g. `28` displays as `28 °C`) - Tọa độ: X=820, Y=20
-    *   *Độ ẩm (Humidity):* VP `0x0162` (16-bit Integer, e.g. `75` displays as `75 %`) - Tọa độ: X=920, Y=20
-    *   *Icon Thời tiết (Weather Icon):* VP `0x0164` (Variable Icon: 0 = Nắng, 1 = Mây, 2 = Mưa, 3 = Dông sét) - Tọa độ: X=780, Y=15
+    *   *Widget:* Text Display (ASCII) - VP `0x0098` (Tọa độ: X=120, Y=180, Rộng=800, Cao=380).
+*   **Weather Widget:** VP `0x0160` (Nhiệt độ), VP `0x0162` (Độ ẩm), VP `0x0164` (Icon), VP `0x0166` (AQI).
 
-### Trang 1: Wi-Fi Deauther
-*   **Console Output Area:**
-    *   *Widget:* Text Display (ASCII)
-    *   *VP Address:* `0x0400`
-    *   *Tọa độ:* X=120, Y=100, Rộng=580, Cao=450
-*   **Nút Bấm Cảm ứng (Touch Controls):**
-    *   *Widget:* Return Key Code (gửi lệnh dạng chuỗi)
-    *   *Nút "Quét AP":* Touch Box `(X=750, Y=100, Rộng=200, Cao=60)`, Value gửi đi = `CMD_DEAUTH_SCAN`
-    *   *Nút "Tấn công":* Touch Box `(X=750, Y=180, Rộng=200, Cao=60)`, Value gửi đi = `CMD_DEAUTH_START`
-    *   *Nút "Dừng":* Touch Box `(X=750, Y=260, Rộng=200, Cao=60)`, Value gửi đi = `CMD_DEAUTH_STOP`
+### Trang 2: BadUSB, Touchpad & Stream Deck Mode
+*   **Bàn phím ảo 75% Layout:** VP `0x0200` (Nhận ký tự ASCII gõ vào).
+*   **Touchpad Cảm ứng Đa điểm (Multi-Touch Precision Touchpad):**
+    *   `0x0210`: Tọa độ Ngón 1 ($X_1, Y_1$ - 4 bytes).
+    *   `0x0214`: Tọa độ Ngón 2 ($X_2, Y_2$ - 4 bytes).
+    *   `0x0218`: Tọa độ Ngón 3 ($X_3, Y_3$ - 4 bytes).
+    *   `0x021C`: Tọa độ Ngón 4 ($X_4, Y_4$ - 4 bytes).
+    *   `0x0220`: Cờ Tap (1 = Left Click, 2 = Right Click).
+    *   `0x0224`: Lựa chọn OS Target (`0` = Win, `1` = Mac, `2` = Linux, `3` = Android).
+*   **Stream Deck Controls:**
+    *   `0x0300`: Thanh trượt Âm lượng (Volume 0-100).
+    *   `0x0302`: Thanh trượt Độ sáng (Brightness 0-100).
+    *   `0x0310`: Nhận lệnh tự động hoán đổi giao diện HMI tùy theo phần mềm active trên PC.
 
-### Trang 2: BadUSB & Stream Deck Mode
-*   **Các phím Macro Pad (4 Phím lớn):**
-    *   *Widget:* Return Key Code + Touch Effect
-    *   *Nút Macro 1:* Touch Box `(X=150, Y=120, Rộng=180, Cao=140)`, Value = `CMD_MACRO_1`, Icon pressed = ICL ID `2`
-    *   *Nút Macro 2:* Touch Box `(X=360, Y=120, Rộng=180, Cao=140)`, Value = `CMD_MACRO_2`, Icon pressed = ICL ID `4`
-    *   *Nút Macro 3:* Touch Box `(X=570, Y=120, Rộng=180, Cao=140)`, Value = `CMD_MACRO_3`, Icon pressed = ICL ID `6`
-    *   *Nút Macro 4:* Touch Box `(X=780, Y=120, Rộng=180, Cao=140)`, Value = `CMD_MACRO_4`, Icon pressed = ICL ID `8`
-*   **Thanh trượt chỉnh Âm lượng (Volume Slider):**
-    *   *Widget:* Slide Adjustment
-    *   *VP Address:* `0x0300` (dải giá trị 0 - 100)
-    *   *Tọa độ:* X=150, Y=320, Rộng=700, Cao=30
-*   **Thanh trượt chỉnh Độ sáng (Brightness Slider):**
-    *   *Widget:* Slide Adjustment
-    *   *VP Address:* `0x0302` (dải giá trị 0 - 100)
-    *   *Tọa độ:* X=150, Y=380, Rộng=700, Cao=30
+### Trang 3: RFID / NFC / iButton Cloner (Mở rộng toàn bộ)
+*   **Nút cảm ứng Đọc/Giả lập RFID/iButton mới:**
+    *   `CMD_IBUTTON_READ`: Bắt đầu quét iButton 1-Wire (DS1990A).
+    *   `CMD_IBUTTON_CYFRAL_READ`: Quét iButton chuẩn Cyfral (DC2000).
+    *   `CMD_IBUTTON_METAKOM_READ`: Quét iButton chuẩn Metakom (TM2002).
+    *   `CMD_RFID_INDALA_READ`: Quét thẻ Indala PSK 64-bit.
+    *   `CMD_RFID_AWID_READ`: Quét thẻ AWID 26/50-bit.
+    *   `CMD_RFID_FDXB_READ`: Quét chip thú cưng FDX-B 134.2kHz.
 
-### Trang 6: SSH Device Manager Page (Trang Quản lý & Lựa chọn thiết bị SSH)
-Trang hiển thị danh sách các máy chủ có thể kết nối SSH khi bấm chọn biểu tượng SSH Terminal từ màn hình chính:
-
-![DWIN Device Selector Mockup](file:///D:/HackerHMI/DGUS/image/page6_7_selector.png)
-
-*   **Danh sách thiết bị (List of 4 Devices):**
-    *   *Widget:* Variable Icon (Chấm tròn trạng thái Online/Offline)
-        *   Device 1 Status: VP `0x0600` (1 = `🟢` Green, 0 = `⚫` Gray)
-        *   Device 2 Status: VP `0x0602`
-        *   Device 3 Status: VP `0x0604`
-        *   Device 4 Status: VP `0x0606`
-    *   *Widget:* Variable Icon (Khung sáng xanh neon khi có session SSH chạy ngầm)
-        *   Device 1 Active SSH Session: VP `0x0610` (1 = Hiện khung xanh neon phát sáng, 0 = Ẩn khung)
-        *   Device 2 Active SSH Session: VP `0x0612`
-        *   Device 3 Active SSH Session: VP `0x0614`
-        *   Device 4 Active SSH Session: VP `0x0616`
-    *   *Widget:* Return Key Code (Bấm chọn thiết bị)
-        *   Device 1 Touch Box: `(X=150, Y=120, Rộng=350, Cao=100)`, Value = `DEV_SEL:1`
-        *   Device 2 Touch Box: `(X=520, Y=120, Rộng=350, Cao=100)`, Value = `DEV_SEL:2`
-        *   Device 3 Touch Box: `(X=150, Y=240, Rộng=350, Cao=100)`, Value = `DEV_SEL:3`
-        *   Device 4 Touch Box: `(X=520, Y=240, Rộng=350, Cao=100)`, Value = `DEV_SEL:4`
-
-### Trang 7: Monitor Device Manager Page (Trang Quản lý & Lựa chọn thiết bị Monitor)
-Trang hiển thị danh sách các máy chủ có thể theo dõi tài nguyên vẽ đồ thị khi bấm chọn biểu tượng Resource Monitor từ màn hình chính:
-
-*   **Danh sách thiết bị (List of 4 Devices):**
-    *   *Widget:* Variable Icon (Chấm tròn trạng thái Online/Offline)
-        *   Device 1 Status: VP `0x0700` (1 = `🟢` Green, 0 = `⚫` Gray)
-        *   Device 2 Status: VP `0x0702`
-        *   Device 3 Status: VP `0x0704`
-        *   Device 4 Status: VP `0x0706`
-    *   *Widget:* Variable Icon (Khung sáng xanh neon khi có session Monitor chạy ngầm)
-        *   Device 1 Active Monitor Session: VP `0x0710` (1 = Hiện khung xanh neon phát sáng, 0 = Ẩn khung)
-        *   Device 2 Active Monitor Session: VP `0x0712`
-        *   Device 3 Active Monitor Session: VP `0x0714`
-        *   Device 4 Active Monitor Session: VP `0x0716`
-    *   *Widget:* Return Key Code (Bấm chọn thiết bị)
-        *   Device 1 Touch Box: `(X=150, Y=120, Rộng=350, Cao=100)`, Value = `MON_SEL:1`
-        *   Device 2 Touch Box: `(X=520, Y=120, Rộng=350, Cao=100)`, Value = `MON_SEL:2`
-        *   Device 3 Touch Box: `(X=150, Y=240, Rộng=350, Cao=100)`, Value = `MON_SEL:3`
-        *   Device 4 Touch Box: `(X=520, Y=240, Rộng=350, Cao=100)`, Value = `MON_SEL:4`
-
-### Trang 5: SSH Terminal Console (Màn hình điều khiển dòng lệnh)
-Giao diện gõ lệnh từ xa cho máy chủ được lựa chọn, hỗ trợ mã màu ANSI và bộ đệm lịch sử cuộn trang:
-
-![DWIN SSH Terminal Mockup](file:///D:/HackerHMI/DGUS/image/page5_ssh.png)
-
-*   **Vùng hiển thị Terminal (Console Area):**
-    *   *Widget:* Text Display (ASCII)
-    *   *VP Address:* `0x0400` (được tiếp nhận dữ liệu log ring buffer từ ESP32-C5)
-    *   *Tọa độ:* X=100, Y=80, Rộng=820, Cao=400
-*   **Bàn phím ảo trượt lên (Virtual Keyboard Overlay):**
-    *   *Nút kích hoạt bàn phím:* Touch Box `(X=850, Y=500, Rộng=100, Cao=60)`, Value gửi đi = `CMD_POP_KEYBOARD`. Gọi hiển thị Popup bàn phím 75% tại trang DWIN tương ứng.
-
-### Trang 10: Resource Monitor Graph (Đồ thị Giám sát Tài nguyên)
-Vẽ trực quan 3 thông số CPU, RAM và Disk của thiết bị được kết nối theo dạng thời gian thực (60s gần nhất):
-
-![DWIN Resource Monitor Mockup](file:///D:/HackerHMI/DGUS/image/page10_monitor.png)
-
-*   **Nhãn chỉ số Text:**
-    *   *Widget:* Text Display (ASCII)
-    *   *CPU Load VP:* `0x0480` - Tọa độ: X=150, Y=100
-    *   *RAM Usage VP:* `0x0482` - Tọa độ: X=450, Y=100
-    *   *Disk Space VP:* `0x0484` - Tọa độ: X=750, Y=100
-*   **Đường cong đồ thị (Real-time Curves):**
-    *   *Widget:* Real-time Curve (vẽ đường đa điểm DWIN)
-    *   *Kênh vẽ (Channels):* Cấu hình 3 kênh màu khác nhau tương ứng với dữ liệu trả về từ lịch sử:
-        *   Kênh 0 (CPU): Neon Pink (`#f472b6`)
-        *   Kênh 1 (RAM): Neon Purple (`#c084fc`)
-        *   Kênh 2 (Disk): Neon Blue (`#3b82f6`)
+### Trang 4: Sub-GHz CC1101 & IR Controller (Mở rộng toàn bộ)
+*   **Nút cảm ứng Vét cạn & Học lệnh IR mới:**
+    *   `CMD_RF_BRUTEFORCE`: Kích hoạt quét vét cạn chuỗi De Bruijn 12-bit (4,096 mã cố định).
+    *   `CMD_IR_LEARN`: Bắt đầu chế độ thu & học lệnh hồng ngoại (VS1838B).
+    *   `CMD_IR_AC_UNIVERSAL`: Bắn chuỗi xung hồng ngoại vạn năng tắt/bật Điều hòa (Daikin/Panasonic).
 
 ---
 
-## 3. Sơ đồ Luồng Chuyển đổi Trang HMI (Navigation Flow)
+## 3. Danh mục Mã Lệnh ASCII từ HMI DWIN (Command Mapping Update)
 
-```mermaid
-graph TD
-    P0[Page 0: Dashboard Home] -->|Click Sidebar 1| P1[Page 1: Wi-Fi Deauther]
-    P0 -->|Click Sidebar 2| P2[Page 2: BadUSB & Stream Deck]
-    P0 -->|Click Sidebar 3| P3[Page 3: RFID/NFC Cloner]
-    P0 -->|Click Sidebar 4| P4[Page 4: RF CC1101 / IR]
-    P0 -->|Click Sidebar 5 SSH Mode| P6[Page 6: SSH Device Manager]
-    P0 -->|Click Sidebar 6 Monitor Mode| P7[Page 7: Monitor Device Manager]
-
-    P1 -->|Press HIDE| P0
-    P2 -->|Press HIDE| P0
-    P3 -->|Press HIDE| P0
-    P4 -->|Press HIDE| P0
-    
-    P6 -->|Select Device DEV_SEL:id| P5[Page 5: SSH Terminal]
-    P6 -->|Press BACK| P0
-    
-    P7 -->|Select Device MON_SEL:id| P10[Page 10: Monitor Graphs]
-    P7 -->|Press BACK| P0
-    
-    P5 -->|Virtual Keyboard Button| PopKB[Popup: Bàn phím ảo 75%]
-    P5 -->|Press HIDE| P0
-    
-    P10 -->|Press HIDE| P0
+```
+[Touch Button] --(UART ASCII)--> [RP2350 Core 0] --(FIFO)--> [Core 1 Multicore (300MHz)]
+                                        │
+                                        └──(SPI0)--> [ESP32-C5 NVS Database]
 ```
 
----
+### Bảng tra cứu Lệnh cảm ứng HMI mới:
 
-## 4. Hướng dẫn nạp file ICL đồ họa xuống màn hình DWIN
-Sau khi thiết kế các file ảnh nền (BMP/PNG) và Icon trong DGUS Tool:
-1.  Xuất các file cấu hình ra thư mục `DWIN_SET` (bao gồm `13_Touch.bin`, `14_Show.bin`, và các file ảnh ICL như `23_Background.icl`, `24_Icons.icl`).
-2.  Chép thư mục `DWIN_SET` vào thẻ nhớ MicroSD (định dạng FAT32, Allocation unit size = 4096 bytes).
-3.  Tắt nguồn màn hình DWIN, cắm thẻ nhớ vào khe cắm thẻ MicroSD ở mặt sau màn hình.
-4.  Cấp nguồn cho màn hình. Màn hình DWIN sẽ hiển thị màu xanh và chạy chữ nạp file liên tục (`SD Card Update...`).
-5.  Khi màn hình hiển thị `SD Card Update OK!`, ngắt nguồn, rút thẻ nhớ và bật lại nguồn. Giao diện mới sẽ hiển thị.
-
----
-
-## 5. Danh sách Prompt để tự tạo Icon (Google Imagen / Midjourney / DALL-E)
-
-Nếu bạn muốn tự generate các bộ icon chất lượng cao nhất bằng AI, hãy sử dụng 4 đoạn prompt Sprite Sheet tương ứng với 4 nhóm chủ đề dưới đây.
-
-> [!TIP]
-> **Hướng dẫn tách nền:** Hãy dùng công cụ Remove.bg hoặc Photoshop/Figma để loại bỏ nền đen `solid black` thành dạng trong suốt (`transparent`) trước khi import vào DGUS Tool.
-
-### 1. Bộ Icon Hệ Thống (System Core Icons)
-> **Prompt:** `A clean game UI sprite sheet containing 8 distinct cyberpunk neon system icons arranged in a neat 4x2 grid on a solid black background. There is wide black space and clear separation between each icon. The 8 icons are: 1. Home house icon, 2. WiFi signal antenna, 3. USB computer keyboard, 4. RFID keycard, 5. Radio tower with waves, 6. Infrared remote control, 7. Terminal console prompt '>_', 8. CPU microchip with pulse graph. All icons are drawn as vibrant glowing vector outlines in neon purple, pink, and cyan. Flat vector asset sheet, black background, no overlapping elements.`
-
-### 2. Bộ Icon Thời Tiết Ban Ngày (Day Weather Icons)
-> **Prompt:** `A clean game UI sprite sheet containing 8 distinct cyberpunk neon daytime weather icons arranged in a neat 4x2 grid on a solid black background. There is wide black space and clear separation between each icon. The 8 icons are: 1. Bright glowing sun, 2. Sun behind cloud, 3. Sun behind rain cloud, 4. Overcast cloud, 5. Rain cloud, 6. Heavy rain storm cloud, 7. Lightning bolt cloud, 8. Snowflake frost. All icons are drawn as vibrant glowing vector outlines in neon yellow, cyan, and pink. Flat vector asset sheet, black background, no overlapping elements.`
-
-### 3. Bộ Icon Thời Tiết Ban Đêm & Mặt Trăng (Night Weather & Moon Icons)
-> **Prompt:** `A clean game UI sprite sheet containing 8 distinct cyberpunk neon nighttime weather and moon phase icons arranged in a neat 4x2 grid on a solid black background. There is wide black space and clear separation between each icon. The 8 icons are: 1. Glowing crescent moon, 2. Glowing full moon, 3. Crescent moon behind cloud, 4. Crescent moon behind rain cloud, 5. Crescent moon behind lightning cloud, 6. Moon with snowflake, 7. Foggy moon. All icons are drawn as vibrant glowing vector outlines in neon yellow, violet, and deep blue. Flat vector asset sheet, black background, no overlapping elements.`
-
-### 4. Bộ Icon Cử Chỉ & Chỉ Báo Trạng Thái (Gestures & Status Indicators)
-> **Prompt:** `A clean game UI sprite sheet containing 8 distinct cyberpunk neon navigation gestures and status indicators arranged in a neat 4x2 grid on a solid black background. There is wide black space and clear separation between each icon. The 8 icons are: 1. Left-pointing back arrow button, 2. Right-pointing forward arrow button, 3. Locked padlock, 4. Unlocked padlock, 5. Glowing neon green online status dot, 6. Glowing neon gray offline status dot, 7. Swipe up hand gesture, 8. Swipe left hand gesture. All icons are drawn as vibrant glowing vector outlines in neon pink, green, and cyan. Flat vector asset sheet, black background, no overlapping elements.`### 5. Bộ Icon Biểu Cảm Chất Lượng Không Khí (AQI Face Expressions)
-> **Prompt:** `A clean game UI sprite sheet containing 6 distinct cyberpunk neon emoji face icons representing air quality levels (AQI status), arranged in a neat 3x2 grid on a solid black background. There is wide black space and clear separation between each icon. The 6 expressions are: 1. Happy smiling face (Good AQI - green glow), 2. Neutral expressionless face (Moderate AQI - yellow glow), 3. Slightly concerned face wearing a surgical mask (Sensitive/Moderate warning - orange glow), 4. Sad frowning face (Unhealthy AQI - red glow), 5. Sick face wearing a respirator mask (Very unhealthy AQI - dark red glow), 6. Skull skeleton face with toxic sign (Hazardous AQI - neon purple glow). All icons are drawn as vibrant glowing vector outlines. Flat vector asset sheet, black background, no overlapping elements.`
+| Mã lệnh HMI ASCII | Module xử lý | Hành vi hệ thống |
+| :--- | :--- | :--- |
+| `CMD_IBUTTON_READ` | `src/ibutton/ibutton.c` | Đọc mã ROM 64-bit DS1990A 1-Wire trên GPIO 28. |
+| `CMD_IBUTTON_CYFRAL_READ` | `src/ibutton/ibutton_ext.c` | Đọc chìa từ biến đổi dòng điện Cyfral. |
+| `CMD_IBUTTON_METAKOM_READ` | `src/ibutton/ibutton_ext.c` | Đọc chìa từ biến đổi dòng điện Metakom. |
+| `CMD_RFID_INDALA_READ` | `src/rfid/rfid_protocols_ext.c` | Đọc thẻ điều chế pha Indala 64-bit PSK. |
+| `CMD_RFID_AWID_READ` | `src/rfid/rfid_protocols_ext.c` | Đọc thẻ AWID 26/50-bit. |
+| `CMD_RFID_FDXB_READ` | `src/rfid/rfid_protocols_ext.c` | Đọc chip sinh học thú cưng ISO 11784/11785 FDX-B (134.2kHz). |
+| `CMD_RF_BRUTEFORCE` | `src/radio/debruijn_gen.c` | Phát chuỗi De Bruijn $B(2,12)$ vét cạn 4,096 mã cửa cổng. |
+| `CMD_IR_LEARN` | `src/ir/ir_rx.c` | Thu học xung thô hồng ngoại từ VS1838B trên GPIO 23. |
+| `CMD_IR_AC_UNIVERSAL` | `src/ir/ir_universal_db.c` | Bắn chuỗi xung hồng ngoại vạn năng tắt/bật Điều hòa. |

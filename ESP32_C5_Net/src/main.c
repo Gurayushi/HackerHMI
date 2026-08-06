@@ -17,7 +17,11 @@
 #include "driver/gpio.h"
 #include "flasher/rp2350_swd_flasher.h"
 #include "ota/ota_server.h"
+#include "ota/ir_web_server.h"
+#include "deauther/wifi_database.h"
+#include "deauther/wifi_auto_connect.h"
 #include "deauther/task_manager.h"
+#include "deauther/tag_database.h"
 #include "weather/weather_client.h"
 
 // Cấu hình các chân SPI2
@@ -102,12 +106,38 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        wifi_event_sta_disconnected_t* event = (wifi_event_sta_disconnected_t*) event_data;
+        ESP_LOGI(TAG, "Wi-Fi mat ket noi, ly do: %d. Thu ket noi lai...", event->reason);
+        
+        if (event->reason == WIFI_REASON_AUTH_FAIL || event->reason == WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT) {
+            char wrong_pass_msg[64];
+            snprintf(wrong_pass_msg, sizeof(wrong_pass_msg), "WIFI_ERR_WRONG_PASS:%s", wifi_ssid);
+            send_to_rp2350(wrong_pass_msg);
+        } else {
+            send_to_rp2350("WIFI_DISCONNECTED");
+        }
+        
+        xEventGroupClearBits(wifi_event_group, WIFI_CONNECTED_BIT);
         esp_wifi_connect();
-        ESP_LOGI(TAG, "Khởi động lại kết nối Wi-Fi...");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "Đã lấy được IP: " IPSTR, IP2STR(&event->ip_info.ip));
         xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
+        
+        // Cap nhat vao CSDL LFU va tang luot ket noi thanh cong
+        wifi_config_t wifi_cfg;
+        if (esp_wifi_get_config(WIFI_IF_STA, &wifi_cfg) == ESP_OK) {
+            wifi_db_add_or_update((const char*)wifi_cfg.sta.ssid, (const char*)wifi_cfg.sta.password);
+            wifi_db_increment_conn((const char*)wifi_cfg.sta.ssid);
+        }
+        
+        char ip_msg[64];
+        snprintf(ip_msg, sizeof(ip_msg), "IR_WEB_URL:http://" IPSTR "/", IP2STR(&event->ip_info.ip));
+        send_to_rp2350(ip_msg);
+        
+        char conn_msg[64];
+        snprintf(conn_msg, sizeof(conn_msg), "WIFI_CONNECTED:%s", wifi_ssid);
+        send_to_rp2350(conn_msg);
     }
 }
 
@@ -283,11 +313,81 @@ void spi_slave_task(void *pvParameters) {
                             send_to_rp2350(reply);
                         }
                     }
+                    else if (strncmp(recvbuf, "CMD_WIFI_FORGET:", 16) == 0) {
+                        char forget_ssid[33] = {0};
+                        strncpy(forget_ssid, recvbuf + 16, sizeof(forget_ssid) - 1);
+                        if (wifi_db_forget(forget_ssid)) {
+                            send_to_rp2350("WIFI_FORGOTTEN");
+                            if (strcmp(wifi_ssid, forget_ssid) == 0) {
+                                esp_wifi_disconnect();
+                                memset(wifi_ssid, 0, sizeof(wifi_ssid));
+                                memset(wifi_pass, 0, sizeof(wifi_pass));
+                            }
+                        }
+                    }
+                    else if (strncmp(recvbuf, "CMD_TAG_ADD_RFID:", 17) == 0) {
+                        char name[16] = {0};
+                        char uid_hex[32] = {0};
+                        int protocol = 0;
+                        if (sscanf(recvbuf + 17, "%[^:]:%[^:]:%d", name, uid_hex, &protocol) == 3) {
+                            uint8_t uid[8];
+                            uint8_t len = 0;
+                            for (int i = 0; i < strlen(uid_hex) && len < 8; i += 2) {
+                                unsigned int val;
+                                sscanf(uid_hex + i, "%2x", &val);
+                                uid[len++] = (uint8_t)val;
+                            }
+                            if (tag_db_add_rfid(name, uid, len, protocol)) {
+                                send_to_rp2350("TAG_ADD_OK");
+                            } else {
+                                send_to_rp2350("TAG_ADD_ERR");
+                            }
+                        }
+                    }
+                    else if (strncmp(recvbuf, "CMD_TAG_ADD_NFC:", 16) == 0) {
+                        char name[16] = {0};
+                        char uid_hex[32] = {0};
+                        int type = 0;
+                        if (sscanf(recvbuf + 16, "%[^:]:%[^:]:%d", name, uid_hex, &type) == 3) {
+                            uint8_t uid[10];
+                            uint8_t len = 0;
+                            for (int i = 0; i < strlen(uid_hex) && len < 10; i += 2) {
+                                unsigned int val;
+                                sscanf(uid_hex + i, "%2x", &val);
+                                uid[len++] = (uint8_t)val;
+                            }
+                            if (tag_db_add_nfc(name, uid, len, type)) {
+                                send_to_rp2350("TAG_ADD_OK");
+                            } else {
+                                send_to_rp2350("TAG_ADD_ERR");
+                            }
+                        }
+                    }
+                    else if (strncmp(recvbuf, "CMD_TAG_DEL_RFID:", 17) == 0) {
+                        if (tag_db_delete_rfid(recvbuf + 17)) {
+                            send_to_rp2350("TAG_DEL_OK");
+                        } else {
+                            send_to_rp2350("TAG_DEL_ERR");
+                        }
+                    }
+                    else if (strncmp(recvbuf, "CMD_TAG_DEL_NFC:", 16) == 0) {
+                        if (tag_db_delete_nfc(recvbuf + 16)) {
+                            send_to_rp2350("TAG_DEL_OK");
+                        } else {
+                            send_to_rp2350("TAG_DEL_ERR");
+                        }
+                    }
+                    else if (strcmp(recvbuf, "CMD_TAG_LIST") == 0) {
+                        char list_buf[256];
+                        tag_db_list(list_buf, sizeof(list_buf));
+                        send_to_rp2350(list_buf);
+                    }
                 }
                 // Kiểm tra xem có phải lệnh cấu hình hệ thống không
                 else if (strncmp(recvbuf, "wifi_ssid=", 10) == 0 || strncmp(recvbuf, "wifi_pass=", 10) == 0 ||
                     strncmp(recvbuf, "ssh_ip=", 7) == 0 || strncmp(recvbuf, "ssh_user=", 9) == 0 ||
-                    strncmp(recvbuf, "ssh_pass=", 9) == 0 || strncmp(recvbuf, "start_ota=", 10) == 0) {
+                    strncmp(recvbuf, "ssh_pass=", 9) == 0 || strncmp(recvbuf, "start_ota=", 10) == 0 ||
+                    strncmp(recvbuf, "start_ir_web=", 13) == 0) {
                     
                     char temp[SPI_MSG_LEN];
                     strcpy(temp, recvbuf);
@@ -304,7 +404,50 @@ void spi_slave_task(void *pvParameters) {
                             } else {
                                 stop_ota_webserver();
                             }
+                        } else if (strcmp(key, "start_ir_web") == 0) {
+                            if (strcmp(value, "1") == 0) {
+                                esp_netif_ip_info_t ip_info;
+                                esp_netif_t* netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+                                bool connected = false;
+                                if (netif && esp_netif_get_ip_info(netif, &ip_info) == ESP_OK && ip_info.ip.addr != 0) {
+                                    connected = true;
+                                }
+                                
+                                if (!connected) {
+                                    send_to_rp2350("IR_WEB_ERR_WIFI");
+                                    if (strlen(wifi_ssid) != 0 && !wifi_started) {
+                                        wifi_init_sta();
+                                    }
+                                } else {
+                                    start_ir_webserver();
+                                    char ip_msg[64];
+                                    snprintf(ip_msg, sizeof(ip_msg), "IR_WEB_URL:http://" IPSTR "/", IP2STR(&ip_info.ip));
+                                    send_to_rp2350(ip_msg);
+                                }
+                            } else {
+                                stop_ir_webserver();
+                            }
                         } else {
+                            if (strcmp(key, "wifi_ssid") == 0) {
+                                strncpy(wifi_ssid, value, sizeof(wifi_ssid) - 1);
+                                wifi_ssid[sizeof(wifi_ssid) - 1] = '\0';
+                            }
+                            else if (strcmp(key, "wifi_pass") == 0) {
+                                strncpy(wifi_pass, value, sizeof(wifi_pass) - 1);
+                                wifi_pass[sizeof(wifi_pass) - 1] = '\0';
+                                
+                                if (wifi_started) {
+                                    wifi_config_t wifi_config = {0};
+                                    strcpy((char*)wifi_config.sta.ssid, wifi_ssid);
+                                    strcpy((char*)wifi_config.sta.password, wifi_pass);
+                                    esp_wifi_disconnect();
+                                    esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+                                    esp_wifi_connect();
+                                } else {
+                                    wifi_init_sta();
+                                }
+                            }
+                            
                             nvs_handle_t my_handle;
                             if (nvs_open("storage", NVS_READWRITE, &my_handle) == ESP_OK) {
                                 nvs_set_str(my_handle, key, value);
@@ -372,6 +515,11 @@ void app_main(void)
     
     // Tải cấu hình
     load_config_from_nvs();
+
+    // Khởi tạo CSDL Wi-Fi LFU và khởi chạy quét ngầm kết nối tự động
+    wifi_db_init();
+    tag_db_init();
+    wifi_auto_connect_start();
 
     // Khởi tạo trình quản lý đa nhiệm
     task_manager_init();

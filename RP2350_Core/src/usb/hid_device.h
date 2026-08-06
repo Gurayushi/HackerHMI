@@ -14,18 +14,18 @@ static int16_t prev_y[4] = {-1, -1, -1, -1};
 static float prev_distance = -1.0;
 
 // Cập nhật OS từ HMI
-void hid_set_os(uint8_t os_type) {
+static inline void hid_set_os(uint8_t os_type) {
     if(os_type <= 3) current_os = os_type;
 }
 
 // Hàm gửi 1 phím nhấn / Tổ hợp phím (Bàn phím)
-void hid_send_key(uint8_t modifier, uint8_t keycode) {
+static inline void hid_send_key(uint8_t modifier, uint8_t keycode) {
     // tud_hid_keyboard_report(0, modifier, &keycode);
     // Nhả phím: tud_hid_keyboard_report(0, 0, NULL);
 }
 
 // 1 NGÓN TAY: Di chuyển chuột
-void hid_move_mouse_1_finger(int16_t curr_x, int16_t curr_y) {
+static inline void hid_move_mouse_1_finger(int16_t curr_x, int16_t curr_y) {
     if (prev_x[0] != -1 && prev_y[0] != -1) {
         int8_t delta_x = (int8_t)(curr_x - prev_x[0]);
         int8_t delta_y = (int8_t)(curr_y - prev_y[0]);
@@ -35,7 +35,7 @@ void hid_move_mouse_1_finger(int16_t curr_x, int16_t curr_y) {
 }
 
 // 2 NGÓN TAY: Cuộn trang (Truyền thống) và Zoom
-void hid_gesture_2_fingers(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
+static inline void hid_gesture_2_fingers(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
     if (prev_x[0] != -1 && prev_x[1] != -1) {
         // Tính khoảng cách giữa 2 ngón tay (Pytago)
         float current_distance = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
@@ -68,7 +68,7 @@ void hid_gesture_2_fingers(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
 }
 
 // 3 NGÓN TAY: Vuốt để mở Đa nhiệm / App Switcher (Tùy theo HĐH)
-void hid_gesture_3_fingers(int16_t y1, int16_t y2, int16_t y3) {
+static inline void hid_gesture_3_fingers(int16_t y1, int16_t y2, int16_t y3) {
     if (prev_y[0] != -1) {
         int8_t delta_y = (int8_t)(((y1 - prev_y[0]) + (y2 - prev_y[1]) + (y3 - prev_y[2])) / 3);
         if (delta_y < -20) {
@@ -109,7 +109,7 @@ void hid_gesture_3_fingers(int16_t y1, int16_t y2, int16_t y3) {
 }
 
 // TAP (Chạm nhả): Click chuột
-void hid_handle_tap(uint8_t finger_count) {
+static inline void hid_handle_tap(uint8_t finger_count) {
     if (finger_count == 1) {
         // Chuột trái
         // tud_hid_mouse_report(0, MOUSE_BUTTON_LEFT, 0, 0, 0, 0);
@@ -122,13 +122,13 @@ void hid_handle_tap(uint8_t finger_count) {
 }
 
 // Reset trạng thái
-void hid_touchpad_release() {
+static inline void hid_touchpad_release() {
     for(int i=0; i<4; i++) { prev_x[i] = -1; prev_y[i] = -1; }
     prev_distance = -1.0;
 }
 
 // Gửi mã điều khiển âm lượng hệ thống (vol_val từ 0 đến 100)
-void hid_set_volume(uint8_t vol_val) {
+static inline void hid_set_volume(uint8_t vol_val) {
     static uint8_t prev_vol = 50;
     // So sánh giá trị cũ và mới để gửi phím tăng/giảm âm lượng tương ứng
     if (vol_val > prev_vol) {
@@ -140,7 +140,7 @@ void hid_set_volume(uint8_t vol_val) {
 }
 
 // Gửi mã điều khiển độ sáng màn hình
-void hid_set_brightness(uint8_t brightness_val) {
+static inline void hid_set_brightness(uint8_t brightness_val) {
     static uint8_t prev_bright = 50;
     if (brightness_val > prev_bright) {
         // tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &brightness_inc_keycode, 2);
@@ -151,7 +151,7 @@ void hid_set_brightness(uint8_t brightness_val) {
 }
 
 // Thực thi chuỗi Macro phím tắt tự động (Multi-Action)
-void hid_run_macro(uint8_t macro_id) {
+static inline void hid_run_macro(uint8_t macro_id) {
     switch (macro_id) {
         case 1: // Work Mode: Mở Chrome + GitHub
             // B1: Giả lập phím Win + R (Mở hộp thoại Run)

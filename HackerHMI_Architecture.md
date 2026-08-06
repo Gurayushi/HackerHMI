@@ -1,4 +1,4 @@
-# HackerHMI: Tài liệu Kiến trúc Hệ thống & Tính năng Chi tiết
+# HackerHMI: Tài liệu Kiến trúc Hệ thống & Tính năng Chi tiết (100% Flipper Zero Parity)
 
 Tài liệu này đóng vai trò là cẩm nang thiết kế kỹ thuật, luồng hoạt động, cấu trúc bộ nhớ và sự phối hợp giữa hai vi điều khiển (RP2350 & ESP32-C5) để bạn dễ dàng quản lý, tra cứu và bảo trì mã nguồn dự án HackerHMI.
 
@@ -6,264 +6,163 @@ Tài liệu này đóng vai trò là cẩm nang thiết kế kỹ thuật, luồ
 
 ## I. TỔNG QUAN PHÂN CHIA NHIỆM VỤ PHẦN CỨNG (AMP ARCHITECTURE)
 
-Hệ thống hoạt động theo mô hình **Đa xử lý không đối xứng (Asymmetric Multi-Processing)**:
-*   **Raspberry Pi RP2350 (Main MCU):** 
-    *   Quản lý toàn bộ giao diện đồ họa HMI DWIN qua cổng UART0 tốc độ `921600 baud`.
-    *   Trực tiếp vận hành các module phần cứng thời gian thực: Giả lập phím ảo BadUSB, thu/phát sóng Sub-1GHz (CC1101), phát hồng ngoại IR, đọc thẻ RFID/NFC.
+Hệ thống hoạt động theo mô hình **Đa xử lý không đối xứng (Asymmetric Multi-Processing)** kết hợp với kiến trúc chạy đa nhân (Dual-Core RP2350 + ESP32-C5):
+*   **Raspberry Pi RP2350 (Main MCU - Chạy 2 nhân 300MHz Overclock):** 
+    *   **Core 0 (Nhân quản trị & UI):** Quản lý giao diện đồ họa HMI DWIN qua cổng UART0, bắt sự kiện phím cảm ứng, quản lý phím/chuột ảo BadUSB / Touchpad 3-ngón, và là nhân duy nhất giao tiếp SPI0 với ESP32-C5 để đảm bảo an toàn tuyến.
+    *   **Core 1 (Nhân phần cứng thời gian thực & Thuật toán nặng):** Nhận lệnh từ Core 0 qua FIFO phần cứng để thực hiện các thuật toán mật mã và giao thức thời gian thực:
+        *   **NFC Crypto1 Cipher Engine & Nested Attack** (Mifare Classic 1K/4K Full Sector).
+        *   **Sub-GHz KeeLoq 528-round Decryptor & De Bruijn 12-bit Brute-force Generator** (CC1101).
+        *   **Somfy RTS 433.42MHz Manchester & Security+ 1.0/2.0 Decoders**.
+        *   **Quét RFID 125kHz / 134.2kHz:** EM4100 (ASK), HID Prox (FSK 26-bit), Indala (PSK), AWID, và FDX-B (chip thú cưng).
+        *   **Trình đọc/giả lập iButton 1-Wire:** Tự động quét DS1990A $\rightarrow$ Cyfral (DC2000) $\rightarrow$ Metakom (TM2002) trên GPIO 28.
+        *   **Mắt thu & Học lệnh Hồng ngoại (IR RX):** Đo micro-giây chu kỳ xung qua mắt thu VS1838B trên GPIO 23.
+    *   *Đồng bộ liên nhân:* Sử dụng cờ báo `g_core1_result_ready` để truyền dữ liệu và khóa Mutex `dwin_uart_mutex` bảo vệ việc in log lên màn hình DWIN.
 *   **ESP32-C5 (Network Co-Processor - N16R8):**
-    *   Tận dụng kết nối không dây (Wi-Fi 5GHz) để chạy động cơ tấn công Wi-Fi Deauther (bản vá).
+    *   Tận dụng kết nối không dây băng tần kép (Wi-Fi 2.4GHz / 5GHz + BLE 5.0) để chạy động cơ tấn công Wi-Fi Deauther.
     *   Vận hành trình quản lý đa nhiệm đa phiên (Task Manager) cho SSH Terminal và Resource Monitor Dashboard nhờ vùng nhớ **8MB PSRAM**.
-    *   Làm mạch nạp SWD không dây cứu hộ hoặc cập nhật OTA cho RP2350.
+    *   Quản lý cơ sở dữ liệu NVS lưu trữ thông tin thẻ RFID, NFC, iButton, mã sóng RF và tài khoản Wi-Fi/SSH (100 LFU profiles).
 
 ---
 
-## II. DANH SÁCH CHI TIẾT TỪNG TÍNH NĂNG
+## II. DANH SÁCH CHI TIẾT TỪNG TÍNH NĂNG & THUẬT TOÁN
 
 ### TÍNH NĂNG 1: Wi-Fi Deauther (Hỗ trợ 5GHz)
 *   **Chức năng con:** Quét AP/Client, chọn mục tiêu tấn công, phát gói tin Deauth/Disassociation giả mạo, spam Beacon ảo, chế độ Nuke phá sóng.
-*   **Luồng hoạt động:** 
-    1. Khi người dùng thao tác bấm nút tấn công hoặc quét trên màn hình, DWIN HMI truyền dữ liệu chuỗi (`CMD_DEAUTH_START`, `CMD_DEAUTH_NUKE`, `DEAUTH_SEL:`) qua UART -> RP2350.
-    2. RP2350 đóng gói chuỗi này đẩy tiếp qua đường truyền SPI -> ESP32-C5.
-    3. ESP32-C5 tiếp nhận lệnh, dùng thư viện Wi-Fi đã vá (`libnet80211.a`) tích hợp từ repository [esp32-c5-deauth](https://github.com/maxbrito500/esp32-c5-deauth) của tác giả **maxbrito500** để bypass kiểm duyệt của Espressif, trực tiếp phát các khung dữ liệu thô (raw frames) ra môi trường.
-    4. ESP32-C5 thu thập log trạng thái hoặc danh sách AP quét được, đẩy ngược chuỗi `"DEAUTH_LOG:<nội dung>"` qua SPI về RP2350 hiển thị lên HMI.
-*   **Cấp phát bộ nhớ:**
-    *   *RP2350:* Không lưu trữ trạng thái AP/Client quét được, giải phóng tối đa RAM.
-    *   *ESP32-C5:* Dành bộ nhớ đệm tĩnh trên SRAM/PSRAM chứa danh sách tối đa 50 APs và 100 Clients.
-*   **Cấu trúc chương trình:**
-    *   *ESP32-C5:* Thư mục `src/deauther/` (`wifi_ctrl.c`, `attack.c`, `frames.c`, `sniffer.c`, `targets.c`, `cli.c`, `io.c`).
-    *   *RP2350:* `src/main.c` (khối xử lý điều hướng lệnh UART và hiển thị log SPI).
+*   **Thư viện:** `src/deauther/` trên ESP32-C5 tích hợp bản vá `libnet80211.a`.
+
+### TÍNH NĂNG 2: BadUSB, Multi-touch Touchpad & Stream Deck Mode
+*   **BadUSB:** Động cơ **DuckyScript 2.0 Parser** hỗ trợ `DELAY`, `STRING`, `VAR`, `IF/ELSE`, `REPEAT`, `GUI`, `ALT`, `CTRL`.
+*   **Multi-touch Touchpad:** Giả lập chuột cảm ứng đa điểm 1-ngón (di chuyển, click), 2-ngón (cuộn trang), 3-ngón (chuyển tab/app) chuẩn USB HID.
+*   **Stream Deck Mode:** Phím tắt Macro Pad kết hợp Consumer Control (điều chỉnh độ sáng, âm lượng).
+
+### TÍNH NĂNG 3: RFID 125kHz & 134.2kHz Full Protocol (`src/rfid/`)
+*   **EM4100 (ASK):** Đọc, ghi (thẻ T5577), và giả lập qua chân MOSFET `RFID_EMU_PIN`.
+*   **HID Prox (FSK 26-bit H10301):** Giải điều chế FSK phần mềm (15.625kHz / 12.5kHz), giả lập qua nhấp nhả MOSFET.
+*   **Indala (PSK) & AWID:** Giải điều chế pha PSK 64-bit và mã hóa AWID 26/50-bit.
+*   **FDX-B (134.2kHz):** Đọc chuẩn chip sinh học định danh thú cưng ISO 11784/11785 (BPSK).
+
+### TÍNH NĂNG 4: NFC PN532 & Thuật toán Crypto1 Cipher (`src/rfid/` & `src/nfc_crypto/`)
+*   **ISO14443-A UID Read/Emulate:** Giao tiếp I2C đọc/giả lập thẻ đích qua `tgInitAsTarget`.
+*   **Mifare Classic 1K/4K Full Sector:** Xác thực Key A/B qua `InDataExchange` với danh sách Transport Keys mặc định.
+*   **Crypto1 Cipher Engine:** Mã hóa/giải mã LFSR 48-bit (`crypto1.c`), tính toán PRNG successor khôi phục 16 sector keys.
+*   **ISO15693 (iCLASS) & Sony FeliCa:** Pass-through khung truyền lệnh 212/424 kbps qua PN532.
+
+### TÍNH NĂNG 5: Sub-GHz CC1101 & Thuật toán KeeLoq / De Bruijn (`src/radio/`)
+*   **Fixed Code (433.92MHz):** Giải mã phần mềm Princeton (24-bit) và Came (12-bit).
+*   **Frequency Analyzer:** Tự động quét đo cường độ sóng RSSI trên các dải tần 315MHz, 433.92MHz, 868MHz, 915MHz.
+*   **Raw Signal Capture & Replay:** Ghi nhận chuỗi xung thô bất kỳ vào RAM (tối đa 1024 xung) và phát lại.
+*   **KeeLoq NLFSR 528-round Decryptor:** Giải mã 528 vòng trích xuất Serial Number, Counter, và Button Status.
+*   **Somfy RTS (433.42MHz) & Security+ 1.0/2.0:** Chuyển tần số tự động sang 433.42MHz, giải mã Manchester 80-bit Somfy và Tri-State 39/66-bit.
+*   **De Bruijn 12-bit Brute-force Generator:** Sinh thuật toán chuỗi De Bruijn $B(2, 12)$ quét 4,096 mã cửa cổng cố định siêu tốc.
+
+### TÍNH NĂNG 6: iButton Multi-Protocol (`src/ibutton/`)
+*   **DS1990A 1-Wire:** Đọc/Giả lập mã ROM 64-bit kèm kiểm tra CRC8 trên **GPIO 28**.
+*   **Cyfral (DC2000) & Metakom (TM2002):** Đọc/Giả lập dòng điện biến đổi Period Pulse Modulation.
+*   **Tự động nhận diện:** Quét tuần tự `DS1990A` $\rightarrow$ `Cyfral` $\rightarrow$ `Metakom`.
+
+### TÍNH NĂNG 7: Hồng ngoại IR Receiver & Universal DB (`src/ir/`)
+*   **IR Blaster (PIO 38kHz Carrier):** Chương trình PIO0 `ir_carrier.pio` phát sóng mang chuẩn 38kHz.
+*   **TV Buster:** Phát mã tắt nguồn vạn năng cho 12 hãng TV lớn.
+*   **IR RX Learning (VS1838B):** Đo thời lượng $us$ các sườn xung trên **GPIO 23** để học lệnh thực tế.
+*   **Universal AC & Projector DB:** Mã phát vạn năng cho điều hòa (Daikin, Panasonic, LG, Midea) và máy chiếu (Epson, Sony, BenQ).
 
 ---
 
-### TÍNH NĂNG 2: BadUSB & Stream Deck Mode (Keystroke Injection & Control Pad)
-*   **Chức năng con:** 
-    *   **BadUSB:** Giả lập bàn phím/chuột USB HID chuẩn, tự động gõ payload tấn công tự động (Ducky scripts) và thiết lập hệ điều hành tương thích (Windows, MacOS, Linux, Android).
-    *   **Stream Deck Mode:** Tận dụng bàn phím ảo DWIN HMI làm bàn phím Macro Pad/Control Pad để kích hoạt nhanh các tổ hợp phím tắt (Multi-action macros: `CMD_MACRO_1` đến `CMD_MACRO_4`) và các lệnh điều hướng hệ thống (Điều chỉnh âm lượng qua `VOL_VAL:`, độ sáng màn hình qua `BRIGHT_VAL:` bằng bàn phím đa phương tiện Consumer Control).
-*   **Luồng hoạt động:**
-    1. Khi người dùng thao tác nhấn nút trên giao diện Stream Deck của HMI, lệnh UART truyền về RP2350.
-    2. RP2350 phân tách lệnh, sử dụng driver USB HID (chạy qua TinyUSB trên RP2350) đóng gói các gói tin báo cáo phím (Keyboard/Consumer reports) tương ứng và gửi thẳng qua cổng USB-C vật lý sang máy tính điều khiển.
-*   **Cấp phát bộ nhớ:** Chạy hoàn toàn trên bộ nhớ RAM của RP2350 (khoảng 3KB cho cấu trúc mapping phím tắt macro). ESP32-C5 không tham gia vào luồng truyền USB HID này để giữ an toàn tối đa cho CPU phụ.
-*   **Cơ chế đồ họa hiển thị (Icon & GIF hoạt họa):**
-    *   **Xử lý nội bộ trên DWIN HMI (Offloading):** Để đạt phản hồi hình ảnh 60FPS không trễ, toàn bộ tài nguyên Icon (định dạng ảnh tĩnh) và GIF hoạt họa (các frame chuyển động) của từng phím tắt được thiết kế trực tiếp trong phần mềm DGUS của DWIN dưới dạng file **ICL (Icon Library)**. 
-    *   **Trạng thái phím Pressed/Released:** Các thành phần phím bấm trên HMI được cấu hình hiệu ứng "Touch Effect" tự động hoán đổi ID Icon giữa hai trạng thái *Nhấn xuống (Pressed)* và *Nhả ra (Released)*, hoặc kích hoạt hoạt ảnh GIF chạy cục bộ mà không cần RP2350 can thiệp.
-    *   **Thay đổi Icon động theo Profile:** RP2350 có khả năng điều khiển thay đổi Icon/GIF hiển thị của các nút từ xa thông qua việc gửi lệnh ghi trực tiếp ID Icon (`dwin_write_text` hoặc ghi giá trị số nguyên) xuống địa chỉ VP điều khiển của phím bấm đó (Ví dụ: ghi giá trị profile ứng dụng đang hoạt động tại cổng `0x0310` để tự động hoán đổi giao diện bộ icon tương ứng).
-*   **Cấu trúc chương trình:** 
-    *   *RP2350:* `src/usb/hid_device.h` và `src/usb/badusb.h`. Tích hợp phân giải phím tắt trong hàm xử lý chính ở `src/main.c`.
- 
----
+## III. CẤU TRÚC THƯ MỤC MÃ NGUỒN MÔ-ĐUN HÓA (`RP2350_Core/src/`)
 
-### TÍNH NĂNG 3: RFID / NFC Reader & Cloner
-*   **Chức năng con:** Đọc mã thẻ thang máy tần số thấp 125kHz (RDM6300 UART) và thẻ thông minh NFC tần số cao 13.56MHz (PN532 I2C).
-*   **Luồng hoạt động:**
-    1. Khi cờ hoạt động `g_rfid_active = true`, RP2350 liên tục kiểm tra UART1 (RDM6300) và giao tiếp I2C (PN532).
-    2. Khi phát hiện thẻ quét qua, RP2350 đọc UID, kích hoạt bíp còi buzzer và in thông tin UID trực tiếp lên màn hình HMI.
-*   **Cấp phát bộ nhớ:** Lưu chuỗi tạm thời `char rfid_uid[32]` trên RAM RP2350.
-*   **Cấu trúc chương trình:**
-    *   *RP2350:* `src/rfid/rfid_nfc.h`.
-
----
-
-### TÍNH NĂNG 4: Sub-1GHz Radio (CC1101 Transceiver)
-*   **Chức năng con:** Thu phát, ghi nhận và phát lại các tín hiệu vô tuyến (mã giả lập cửa cuốn, chuông cửa) tần số 315MHz/433MHz.
-*   **Luồng hoạt động:** 
-    1. Người dùng nhấn nút "Mở cổng" (`CMD_RF_OPEN`) trên HMI.
-    2. RP2350 giao tiếp qua SPI1 điều khiển chip vô tuyến CC1101 truyền tải chuỗi byte dữ liệu ra không trung.
-*   **Cấu trúc chương trình:**
-    *   *RP2350:* `src/radio/radio_cc1101.h` (SPI1: Pins 12, 13, 14, 15).
-
----
-
-### TÍNH NĂNG 5: Infrared Remote Simulator (IR Blaster)
-*   **Chức năng con:** Ghi và phát tín hiệu điều khiển hồng ngoại của các thiết bị gia dụng (Tivi, điều hòa).
-*   **Luồng hoạt động:** 
-    1. RP2350 nhận lệnh bắn xung `CMD_IR_FIRE` qua UART HMI.
-    2. RP2350 sử dụng module PIO0 (Programmable I/O) độc quyền để tạo sóng mang tần số chính xác 38kHz phát qua đèn LED IR (chân GPIO 22).
-*   **Cấu trúc chương trình:**
-    *   *RP2350:* `src/ir/ir_blaster.h`.
+```
+RP2350_Core/src/
+├── comm/
+│   ├── c5_spi.h / c5_spi.c       # Giao tiếp SPI0 với ESP32-C5
+├── multicore/
+│   ├── core1_task.h / core1_task.c # Quản lý chạy đa nhân Core 1 (300MHz)
+├── ui/
+│   ├── dwin_ui.h                 # Driver UART0 màn hình DWIN
+│   ├── hmi_cmd_parser.h / .c     # Bộ phân tích cú pháp lệnh HMI
+├── ibutton/
+│   ├── ibutton.h / ibutton.c     # 1-Wire DS1990A driver
+│   ├── ibutton_ext.h / .c        # Cyfral & Metakom protocols
+├── nfc_crypto/
+│   ├── crypto1.h / crypto1.c     # Crypto1 48-bit LFSR cipher
+├── radio/
+│   ├── radio_cc1101.h / .c       # CC1101 OOK RX/TX & Princeton/Came decoders
+│   ├── keeloq.h / keeloq.c       # KeeLoq 528-round NLFSR decryptor
+│   ├── debruijn_gen.h / .c       # De Bruijn 12-bit brute-force generator
+│   ├── rolling_codes.h / .c      # Somfy RTS (433.42MHz) & Security+ decoders
+├── rfid/
+│   ├── rfid_nfc.h / rfid_nfc.c   # EM4095 EM4100/HID Prox & PN532 NFC
+│   ├── rfid_protocols_ext.h / .c # Indala PSK, AWID, FDX-B (134.2kHz)
+├── ir/
+│   ├── ir_blaster.h              # PIO IR TX driver
+│   ├── ir_rx.h / ir_rx.c         # VS1838B IR learning receiver
+│   ├── ir_universal_db.h / .c    # Universal AC & Projector IR DB
+├── usb/
+│   ├── badusb.h                  # BadUSB DuckyScript 2.0 engine
+│   ├── hid_device.h              # Multi-touch Touchpad mouse emulation
+├── flasher/
+│   ├── esp32_flasher.h           # Mạch nạp cứu hộ C5 UART Bridge
+└── main.c                        # Tệp khởi chạy chính (<180 dòng)
+```
 
 ---
 
-### TÍNH NĂNG 6: Mạch nạp Cứu hộ ESP32-C5 UART Bridge
-*   **Chức năng con:** Đưa ESP32-C5 vào chế độ Bootloader nạp code từ xa và làm cầu nối UART tốc độ cao nạp trực tiếp qua cổng USB RP2350.
-*   **Luồng hoạt động:**
-    1. HMI bấm nút "Flash Mode" (`CMD_FLASH_MODE`).
-    2. RP2350 kéo IO9 của C5 xuống LOW và nhấp EN của C5 xuống LOW để buộc C5 vào chế độ ROM Bootloader.
-    3. RP2350 chuyển sang vòng lặp vô hạn chuyển tiếp dữ liệu thô trực tiếp giữa cổng USB CDC của PC sang cổng UART1 (tốc độ nạp 921600 baud) của ESP32-C5.
-*   **Cấu trúc chương trình:**
-    *   *RP2350:* `src/flasher/esp32_flasher.h`.
+## IV. BẢN ĐỒ BỘ NHỚ VÙNG ĐỆM DWIN DGUS II (VP MEMORY MAP REFERENCE)
+
+Dựa trên tài liệu tham khảo `dwin_memory_map.txt` và `T5L_DGUSII-Application-Development-Guide-V2.921.pdf`:
+
+### 1. Vùng nhớ Văn bản & Log Console (Text Display VP Map)
+*   **`0x0098`:** **System Console Log** (Log hệ thống, in kết quả quét UID thẻ RFID, NFC, iButton).
+*   **`0x0400`:** **Detail Console Log** (Wi-Fi AP List, SSH Terminal, Task Monitor, UID chi tiết).
+*   **`0x0100` - `0x0140`:** Vùng đệm gõ phím ảo cấu hình Wi-Fi SSID, Pass, SSH IP/User/Pass.
+
+### 2. Vùng nhớ Cảm ứng Đa điểm (Multi-Touch Precision Touchpad VP Map)
+*   **`0x0210`:** Tọa độ Ngón 1 ($X_1, Y_1$).
+*   **`0x0214`:** Tọa độ Ngón 2 ($X_2, Y_2$).
+*   **`0x0218`:** Tọa độ Ngón 3 ($X_3, Y_3$).
+*   **`0x021C`:** Tọa độ Ngón 4 ($X_4, Y_4$).
+*   **`0x0220`:** Cờ Tap (1 = Click Trái, 2 = Click Phải).
+*   **`0x0224`:** Lựa chọn OS target (0 = Windows, 1 = MacOS, 2 = Linux, 3 = Android).
+
+### 3. Vùng nhớ Stream Deck & Control Pad VP Map
+*   **`0x0300`:** Thanh trượt điều chỉnh Âm lượng hệ thống (0 - 100).
+*   **`0x0302`:** Thanh trượt điều chỉnh Độ sáng màn hình (0 - 100).
+*   **`0x0310`:** Nhận lệnh tự động đổi giao diện HMI (Smart Profile) từ PC gửi xuống qua USB.
+
+### 4. Vùng nhớ Wi-Fi Deauther 5GHz VP Map
+*   **`0x0470`:** Nhãn trạng thái Deauther (`"RUNNING"`, `"STOPPED"`).
+*   **`0x0480`:** Số lượng gói tin Deauth đã bắn (`"Sent: 2.4G: xxx, 5G: yyy"`).
+*   **`0x0490`:** Nhãn chế độ tấn công đang chọn.
 
 ---
 
-### TÍNH NĂNG 7: Cập nhật Không dây Dual OTA
-*   **Chức năng con:** Nạp chương trình không dây qua Web Server cho ESP32-C5 và RP2350 (qua giao tiếp SWD).
-*   **Luồng hoạt động:**
-    1. Người dùng tải file `.bin` lên trang web OTA của ESP32-C5.
-    2. Nếu cập nhật cho RP2350, ESP32-C5 kéo chân reset của RP2350 và dùng module SWD giả lập nạp trực tiếp file nhị phân qua cổng nạp debug SWD (SWCLK, SWDIO, RST) của RP2350.
-*   **Cấu trúc chương trình:**
-    *   *ESP32-C5:* `src/ota/ota_server.h` và `src/flasher/rp2350_swd_flasher.h`.
+## V. SƠ ĐỒ PINOUT ĐẤU NỐI VẬT LÝ HOÀN CHỈNH (PINOUT MAP)
+
+| Tên Module | Chân Chức năng | Chân RP2350 | Ghi chú & Cấu hình |
+| :--- | :--- | :---: | :--- |
+| **iButton (1-Wire)** | Data / I/O | **GPIO 28** | Trở kéo lên 4.7kΩ lên 3.3V (DS1990A / Cyfral / Metakom). |
+| **IR RX (Mắt thu)** | Signal Out | **GPIO 23** | Kết nối mắt thu VS1838B (Active LOW). |
+| **IR TX (LED phát)** | Anode | **GPIO 22** | Phát băm xung 38kHz qua PIO0. |
+| **EM4095 RFID 125k** | SHD (Shutdown) | **GPIO 20** | LOW = Bật phát sóng, HIGH = Tắt phát sóng. |
+| | DEMOD / OUT | **GPIO 26** | Đọc tín hiệu Manchester/FSK/PSK thô. |
+| | MOD / EMU | **GPIO 27** | Lái MOSFET ngắt sóng mang / giả lập thẻ. |
+| **CC1101 Sub-GHz** | SPI1 MISO/MOSI/SCK/CS | **GPIO 12, 15, 14, 13** | Tuyến SPI1 dành riêng cho CC1101. |
+| | GDO0 (RX Interrupt) | **GPIO 10** | Ngắt thu tín hiệu OOK/Manchester. |
+| **PN532 NFC 13.56M** | I2C0 SDA / SCL | **GPIO 4, 5** | Tuyến I2C0 kéo trở pull-up 4.7kΩ. |
+| **ESP32-C5 SPI** | SPI0 MISO/MOSI/SCK/CS | **GPIO 16, 19, 18, 17** | Tuyến SPI0 bus cao tốc liên vi điều khiển. |
+| | Handshake Interrupt | **GPIO 22** | Chân báo ngắt dữ liệu SPI. |
+| **DWIN 7" HMI** | UART0 TX / RX | **GPIO 0, 1** | Tốc độ baud **921600 bps** (Native TTL 3.3V qua hàng 6-pin 2.54mm header UART2/PGL2). |
 
 ---
 
-### TÍNH NĂNG 8: Đa nhiệm Đa phiên SSH & Monitor (Nâng cao)
-*   **Chức năng con:** Mở song song nhiều phiên SSH Terminal, theo dõi tài nguyên của nhiều máy chủ cùng lúc, ghi dữ liệu biểu đồ 60 giây, tự động đóng task cũ khi tràn RAM (FIFO).
-*   **Luồng hoạt động:**
-    1. Người dùng mở trang quản lý task của tính năng để xem danh sách hoặc chọn mở phiên làm việc mới.
-    2. Khi ẩn (Hide): Tiến trình SSH/Monitor của task vẫn chạy ngầm trên ESP32-C5.
-    3. Đối với Monitor: C5 định kỳ 1 giây/lần lấy CPU/RAM/Disk ghi vào mảng lịch sử 60 phần tử.
-    4. Khi khôi phục (Resume): ESP32-C5 chia nhỏ lịch sử 60 điểm dữ liệu này đẩy qua SPI về RP2350 vẽ lại biểu đồ tức thì lên màn hình.
-*   **Cấp phát bộ nhớ:**
-    *   **RAM SSH tối đa:** **1MB** trên PSRAM của ESP32-C5. Nếu vượt quá, phiên SSH cũ nhất (ở đầu hàng đợi liên kết đôi) sẽ bị `Kill` giải phóng tài nguyên.
-    *   **RAM Monitor tối đa:** **256KB** trên PSRAM.
-    *   *RP2350 RAM:* Đã giải phóng bộ đệm tĩnh 30KB. Chỉ lưu trữ cấu hình nhỏ và chuyển tiếp dữ liệu hiển thị.
-*   **Cấu trúc chương trình:**
-    *   *ESP32-C5:* `src/deauther/task_manager.h`, `src/deauther/task_manager.c`, tích hợp trong `src/main.c`.
-    *   *RP2350:* `src/main.c` (Giao tiếp SPI, cập nhật chỉ số đồ họa DWIN `0x0480`, `0x0482`, `0x0484`).
+## VI. CÔNG CỤ HỖ TRỢ AI DEVELOPMENT: DWIN DGUS MCP SERVER
 
----
+Hệ thống tích hợp một MCP Server (Model Context Protocol) chuyên dụng bằng Python tại tệp [`tools/dwin_dgus_mcp_server.py`](file:///D:/HackerHMI/tools/dwin_dgus_mcp_server.py) để cho phép AI Agent tương tác trực tiếp với DWIN HMI:
 
-### TÍNH NĂNG 9: Núm xoay Vô cấp (Rotary Encoder - EC11 / KY-040)
-*   **Chức năng con:** Cuộn điều hướng Menu danh sách, điều chỉnh tăng/giảm âm lượng (`VOL_VAL`) và độ sáng (`BRIGHT_VAL`) vô cấp, cuộn ngược lịch sử Terminal (Scrollback).
-*   **Luồng hoạt động:** 
-    1. Khi người dùng xoay núm hoặc nhấn nút, trạng thái chân CLK/DT/SW thay đổi kích hoạt ngắt ngoài (External GPIO Interrupt) trên RP2350.
-    2. RP2350 tính toán chiều xoay (Thuận/Nghịch). Nếu ở chế độ Stream Deck, nó gửi phím tăng/giảm âm lượng hoặc độ sáng qua cổng USB HID giả lập tới PC, đồng thời đồng bộ giá trị hiển thị mới xuống HMI DWIN qua UART.
-    3. Nếu ở chế độ Terminal, xoay núm sẽ thay đổi con trỏ cuộn dòng và gửi lệnh render lại bộ đệm cuộn.
-*   **Cấp phát bộ nhớ:** Sử dụng bộ đếm trạng thái nhẹ (vài bytes) trong RAM để lưu trữ vị trí encoder hiện thời.
-*   **Cấu trúc chương trình:**
-    *   *RP2350:* Tích hợp trình đọc encoder dùng bộ đếm ngắt (Interrupt-driven debouncing) trong `src/main.c` hoặc module hỗ trợ ngoại vi.
-
----
-
-## III. BẢN ĐỒ CHI TIẾT ĐỊA CHỈ BIẾN & LỆNH HMI DWIN (VARIABLE & COMMAND MAP)
-
-Màn hình DWIN HMI tương tác với RP2350 thông qua các địa chỉ biến vùng nhớ (VP Address) và các mã lệnh chuỗi ASCII gửi qua UART. Dưới đây là bảng đặc tả đầy đủ:
-
-### 1. Bản đồ Địa chỉ Biến HMI (VP Memory Map)
-
-| Địa chỉ VP (Hex) | Kiểu dữ liệu | Hướng truyền | Vai trò & Tính năng tương ứng |
-| :---: | :---: | :---: | :--- |
-| **`0x0084`** | Register (16-bit) | Read/Write | **System Page ID:** Màn hình tự cập nhật khi chuyển trang. RP2350 đọc định kỳ để biết người dùng đang xem chức năng nào, hoặc ghi đè để chủ động đổi trang (`dwin_switch_page()`). |
-| **`0x0098`** | Text (ASCII) | Write-Only | **System Console Log:** Vùng hiển thị log hệ thống ở trang chủ. In ra các thông tin khởi động, trạng thái kết nối Wi-Fi, đổi chế độ BadUSB, hay UID thẻ từ vừa quét. |
-| **`0x0400`** | Text (ASCII) | Write-Only | **Detail Terminal Area:** Vùng hiển thị log đa năng. Dùng để in danh sách AP quét được của Deauther, hiển thị Terminal SSH chạy ngầm, danh sách Task đang chạy, hay lịch sử 60s Monitor. |
-| **`0x0470`** | Text (ASCII) | Write-Only | **Deauther Status:** Hiển thị nhãn trạng thái của bộ phát Deauther (`"Scanning..."`, `"RUNNING - Targeted Mode"`, `"RUNNING - Nuke Mode"`, `"STOPPED"`). |
-| **`0x0480`** | Text (ASCII) | Write-Only | **CPU / Speed Stats:** Nhãn chỉ số CPU thời gian thực (`"CPU: xx%"`) của Monitor Task đang active, hoặc tốc độ truyền gói thô (`"pkts=xx"`) của Deauther. |
-| **`0x0482`** | Text (ASCII) | Write-Only | **RAM Stats:** Nhãn chỉ số RAM thời gian thực (`"RAM: xx%"`) của Monitor Task đang xem. |
-| **`0x0484`** | Text (ASCII) | Write-Only | **Disk Stats:** Nhãn chỉ số dung lượng ổ cứng (`"Disk: xx%"`) của Monitor Task đang xem. |
-| **`0x0490`** | Text (ASCII) | Write-Only | **Deauther Mode String:** Nhãn thể hiện phân loại chế độ hoạt động hiện thời của Wi-Fi. |
-| **`0x0160`** | Integer (16-bit) | Write-Only | **Weather Temperature:** Giá trị nhiệt độ thời tiết đo được bằng độ C hiển thị ở trang chủ Page 0. |
-| **`0x0162`** | Integer (16-bit) | Write-Only | **Weather Humidity:** Giá trị độ ẩm thời tiết đo được tính bằng % RH hiển thị ở trang chủ Page 0. |
-| **`0x0164`** | Variable Icon (16-bit) | Write-Only | **Weather Icon:** Biểu tượng trạng thái thời tiết hiển thị ở trang chủ Page 0 (0 = Nắng, 1 = Mây, 2 = Mưa, 3 = Dông sét). |
-| **`0x0166`** | Integer (16-bit) | Write-Only | **Weather Air Quality Index (AQI):** Giá trị chất lượng không khí US-AQI của Open-Meteo Air Quality API ở trang chủ Page 0. |
-| **`0x0600-0x0606`** | Variable Icon (16-bit) | Write-Only | **Device Online Status:** Chấm tròn trạng thái Online/Offline cho 4 thiết bị (1 = Green dot, 0 = Gray dot). |
-| **`0x0610-0x0616`** | Variable Icon (16-bit) | Write-Only | **Device Session Frame:** Khung sáng neon xanh dương biểu thị có tiến trình chạy ngầm (1 = Show glowing border, 0 = Hide). |
-| **`0x5000`** | Text (ASCII) | Read-Only | **Keyboard Command Input:** Vùng đệm bàn phím ảo của DWIN. Mỗi khi người dùng gõ lệnh hoặc nhập thông số cấu hình và nhấn Enter, DWIN sẽ ghi vào địa chỉ này và gửi sự kiện ngắt báo cho RP2350 đọc. |
-
----
-
-### 2. Danh mục Mã Lệnh ASCII từ HMI DWIN (Command Codes)
-
-Khi người dùng nhấn các nút bấm cảm ứng trên màn hình DWIN, HMI sẽ bắn các chuỗi lệnh tương ứng về RP2350 qua UART để xử lý:
-
-#### A. Nhóm Lệnh Wi-Fi Deauther
-*   `CMD_DEAUTH_SCAN`: Yêu cầu ESP32-C5 càn quét các trạm phát sóng Wi-Fi xung quanh.
-*   `CMD_DEAUTH_START`: Bắt đầu tấn công ngắt kết nối AP mục tiêu đã chọn.
-*   `CMD_DEAUTH_STOP`: Dừng cuộc tấn công Wi-Fi Deauther.
-*   `CMD_DEAUTH_NUKE`: Tấn công dồn dập, spam ngắt mạng diện rộng trong 30 giây.
-*   `CMD_DEAUTH_HIDE`: Chuyển màn hình về Trang chủ nhưng tiếp tục giữ cuộc tấn công Wi-Fi chạy ẩn.
-*   `CMD_DEAUTH_KILL`: Tắt hoàn toàn Wi-Fi Deauther và giải phóng kênh truyền Wi-Fi.
-*   `DEAUTH_SEL:<id>`: Chọn ID của AP trong danh sách quét để nhắm mục tiêu.
-
-#### B. Nhóm Lệnh Giả lập BadUSB
-*   `CMD_OS_WIN` / `CMD_OS_MAC` / `CMD_OS_LINUX` / `CMD_OS_ANDROID`: Chuyển đổi Driver bàn phím giả lập của RP2350 tương ứng với hệ điều hành của máy tính đích.
-*   `CMD_MACRO_1` / `CMD_MACRO_2` / `CMD_MACRO_3` / `CMD_MACRO_4`: Kích hoạt kịch bản gõ phím macro tự động đã lưu (như Work Mode, Dev Mode, Gaming Mode).
-*   `CMD_BADUSB_HIDE`: Quay lại Trang chủ, giữ kết nối USB HID chạy ngầm.
-*   `CMD_BADUSB_KILL`: Tắt hoàn toàn tính năng giả lập BadUSB.
-
-#### C. Nhóm Lệnh RF & Hồng Ngoại (CC1101 & IR)
-*   `CMD_RF_OPEN`: Gửi tín hiệu điều chế RF Sub-1GHz (315/433MHz) thông qua module CC1101.
-*   `CMD_RADIO_HIDE` / `CMD_RADIO_KILL`: Ẩn hoặc tắt bộ thu phát CC1101.
-*   `CMD_IR_FIRE`: Phát chuỗi mã hồng ngoại 12-bit điều khiển thiết bị gia dụng.
-*   `CMD_IR_HIDE` / `CMD_IR_KILL`: Ẩn hoặc dừng hoàn toàn bộ thu phát IR.
-
-#### D. Nhóm Lệnh Mạch Nạp & Đa nhiệm Nâng cao (SSH / Monitor)
-*   `CMD_FLASH_MODE`: Đưa ESP32-C5 vào bootloader và kích hoạt cổng cầu nối UART.
-*   `CMD_FLASH_HIDE` / `CMD_FLASH_KILL`: Ẩn/tắt chế độ cầu nối cứu hộ.
-*   `CMD_SSH_LIST` / `CMD_MONITOR_LIST`: Yêu cầu ESP32-C5 gửi danh sách các task SSH/Monitor đang hoạt động ngầm.
-*   `CMD_SSH_START:<host> <user> <pass> <port>`: Khởi tạo một phiên SSH Terminal mới.
-*   `CMD_MONITOR_START:<host> <user> <pass> <port>`: Khởi tạo một Dashboard giám sát tài nguyên mới.
-*   `CMD_SSH_HIDE:<id>` / `CMD_MONITOR_HIDE:<id>`: Thu nhỏ task SSH/Monitor có ID tương ứng xuống nền.
-*   `CMD_SSH_RESUME:<id>` / `CMD_MONITOR_RESUME:<id>`: Phục hồi và mở lại giao diện hiển thị của task.
-*   `CMD_SSH_KILL:<id>` / `CMD_MONITOR_KILL:<id>`: Giải phóng tài nguyên và ngắt socket kết nối của task có ID tương ứng.
-*   `DEV_SEL:<id>`: Lựa chọn thiết bị đích trên Trang 8 (Device Selector) để kết nối SSH hoặc Monitor.
-
-#### E. Nhóm Lệnh Cấu hình hệ thống (Gửi trực tiếp vào NVS Storage của C5)
-*   `wifi_ssid=<value>`: Cài đặt SSID Wi-Fi để ESP32-C5 kết nối internet.
-*   `wifi_pass=<value>`: Cài đặt mật khẩu Wi-Fi.
-*   `ssh_ip=<value>`: Thiết lập địa chỉ IP SSH mặc định.
-*   `ssh_user=<value>`: Thiết lập tài khoản SSH mặc định.
-*   `ssh_pass=<value>`: Thiết lập mật khẩu SSH mặc định.
-*   `start_ota=1`: Khởi động Web Server OTA cập nhật phần mềm không dây trên ESP32-C5.
-*   `start_ota=0`: Tắt Web Server OTA.
-
----
-
-## IV. BẢNG LINH KIỆN & SƠ ĐỒ ĐẤU NỐI VẬT LÝ (HARDWARE PINOUT & SCHEMATIC MAP)
-
-Dưới đây là đặc tả chi tiết linh kiện sử dụng và sơ đồ đấu nối dây vật lý giữa 2 chip xử lý và các mô-đun ngoại vi:
-
-### 1. Danh sách Linh kiện Phần cứng (Bill of Materials)
-
-| STT | Tên Linh kiện | Mã hiệu/Part Number | Vai trò & Kết nối chính |
-| :---: | :--- | :--- | :--- |
-| 1 | **MCU Chính** | Raspberry Pi Pico 2 (RP2350A) | Cortex-M33, quản lý ngoại vi thời gian thực và giao tiếp UART DWIN HMI. |
-| 2 | **MCU Mạng** | ESP32-C5-DevKitC-1 (N16R8) | RISC-V, 16MB Flash, 8MB PSRAM, xử lý SSH/Monitor và phát sóng Deauther 5GHz. |
-| 3 | **Màn hình HMI** | DWIN 7" (DMT10600C070-07WTZ5) | Giao tiếp UART0, điều khiển cảm ứng điện dung tích hợp chip T5L. |
-| 4 | **Module RF** | Texas Instruments CC1101 SPI | Phân giải tín hiệu vô tuyến 315/433MHz nối cổng SPI1. |
-| 5 | **Đầu đọc RFID** | RDM6300 UART Receiver | Đọc thẻ từ chung cư tần số 125kHz nối cổng UART1. |
-| 6 | **Đầu đọc NFC** | NXP PN532 I2C Shield | Đọc/Ghi thẻ NFC 13.56MHz nối cổng I2C0. |
-| 7 | **Hồng ngoại (IR)** | Led IR Phát KY-005 + Mắt thu TSOP38238 | Phát/Thu sóng hồng ngoại gia dụng băm xung 38kHz. |
-| 8 | **Núm xoay vô cấp** | EC11 / KY-040 Rotary Encoder | Nhập liệu vô cấp, cuộn menu/lịch sử terminal, chỉnh âm lượng/độ sáng. |
-
----
-
-### 2. Sơ đồ Pinout Đấu nối Vật lý (Inter-chip & Peripheral Wiring)
-
-#### A. Liên kết RP2350 <-> ESP32-C5 (SPI, SWD, UART Flash)
-*   **Đường truyền dữ liệu chính SPI (Pico SPI0):**
-    *   `MISO`: RP2350 GPIO 16 <-> ESP32-C5 GPIO 16
-    *   `MOSI`: RP2350 GPIO 19 <-> ESP32-C5 GPIO 19
-    *   `SCK`: RP2350 GPIO 18 <-> ESP32-C5 GPIO 18
-    *   `CS`: RP2350 GPIO 17 <-> ESP32-C5 GPIO 17
-*   **Đường báo hiệu ngắt (Handshake interrupt):**
-    *   `Handshake`: RP2350 GPIO 22 <-> ESP32-C5 GPIO 22
-*   **Đường nạp cứu hộ UART Bootloader (RP2350 nạp cho C5):**
-    *   `UART TX`: RP2350 GPIO 8 (Pico TX1) -> ESP32-C5 RX0 (UART0)
-    *   `UART RX`: RP2350 GPIO 9 (Pico RX1) <- ESP32-C5 TX0 (UART0)
-    *   `Chip Reset (EN)`: RP2350 GPIO 20 -> Chân EN (Reset) của ESP32-C5
-    *   `Boot strapping (IO9)`: RP2350 GPIO 21 -> Chân IO9 (Strapping pin) của ESP32-C5
-*   **Đường nạp SWD Không dây (ESP32-C5 nạp OTA cho RP2350):**
-    *   `SWCLK`: ESP32-C5 GPIO 4 -> Chân SWCLK của RP2350
-    *   `SWDIO`: ESP32-C5 GPIO 5 <-> Chân SWDIO của RP2350
-    *   `RP2350 RST`: ESP32-C5 GPIO 6 -> Chân RUN/RST của RP2350
-
-#### B. Liên kết RP2350 <-> Thiết bị ngoại vi & DWIN HMI
-*   **Màn hình DWIN HMI (UART0):**
-    *   `UART TX`: RP2350 GPIO 0 (TX0) -> Chân RXD của màn hình DWIN
-    *   `UART RX`: RP2350 GPIO 1 (RX0) <- Chân TXD của màn hình DWIN
-*   **Đầu đọc thẻ RFID 125kHz RDM6300 (UART1):**
-    *   `UART RX`: RP2350 GPIO 9 (RX1) <- Chân TXD của module RDM6300
-*   **Đầu đọc thẻ NFC 13.56MHz PN532 (I2C0):**
-    *   `I2C SDA`: RP2350 GPIO 4 (SDA0) <-> Chân SDA của PN532 (kéo trở pull-up 4.7k lên 3.3V)
-    *   `I2C SCL`: RP2350 GPIO 5 (SCL0) <-> Chân SCL của PN532 (kéo trở pull-up 4.7k lên 3.3V)
-*   **Module Vô tuyến Sub-1GHz CC1101 (SPI1):**
-    *   `MISO`: RP2350 GPIO 12 <-> Chân MISO của CC1101
-    *   `MOSI`: RP2350 GPIO 15 <-> Chân MOSI của CC1101
-    *   `SCK`: RP2350 GPIO 14 <-> Chân SCK của CC1101
-    *   `CS`: RP2350 GPIO 13 <-> Chân CSN của CC1101
-    *   `GDO0`: RP2350 GPIO 10 <- Chân GDO0 của CC1101 (Chân ngắt thu nhận sóng)
-*   **Hồng ngoại IR Blaster:**
-    *   `IR LED`: RP2350 GPIO 22 -> Chân anode LED IR phát (điều chế băm xung 38kHz)
-*   **Núm xoay vô cấp EC11 / KY-040:**
-    *   `CLK`: RP2350 GPIO 2 -> Chân CLK (Clock) của Rotary Encoder
-    *   `DT`: RP2350 GPIO 3 -> Chân DT (Data) của Rotary Encoder
-    *   `SW`: RP2350 GPIO 6 -> Chân SW (Switch nút nhấn) của Rotary Encoder
+*   **`dwin_write_vp`**: Đóng gói và gửi khung truyền DGUS `5A A5 [LEN] 82 [VP] [DATA]`.
+*   **`dwin_write_text`**: Ghi văn bản ASCII lên địa chỉ VP DWIN (`0x0098` log hệ thống, `0x0400` log terminal).
+*   **`dwin_switch_page`**: Đổi trang hiển thị HMI bằng cách ghi ID trang xuống VP `0x0084`.
+*   **`dwin_read_vp`**: Đọc giá trị biến VP từ DWIN qua khung lệnh `5A A5 [LEN] 83 [VP] [LEN]`.
+*   **`dgus_memory_map_lookup`**: Tra cứu nhanh địa chỉ vùng nhớ và mã lệnh từ `dwin_memory_map.txt`.
+*   **`dgus_parse_config`**: Phân tích file cấu hình phần cứng `T5L_CONFIG.BIN`.
+*   **Cấu hình đăng ký:** Tệp [`tools/mcp_config.json`](file:///D:/HackerHMI/tools/mcp_config.json).
 

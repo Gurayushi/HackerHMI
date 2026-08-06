@@ -69,4 +69,30 @@ Khi người dùng chạm nút cảm ứng trên màn hình:
 - `CMD_DEAUTH_NUKE`: Chế độ "Nuke" tấn công tất cả các AP quét được trong 30 giây.
 - `DEAUTH_SEL:<ap_idx>`: Chọn hoặc hủy chọn AP theo số thứ tự (ví dụ: `DEAUTH_SEL:0` để chọn AP số 0).
 - `DEAUTH_MODE:<mode>`: Chọn chế độ tấn công (`broadcast`, `unicast`, `disassoc`, `authflood`, `mixed`).
+- `CMD_WIFI_FORGET:<ssid>`: Xóa thông tin Wi-Fi ra khỏi cơ sở dữ liệu NVS (100 profile LFU).
+- `CMD_GOTO_WIFI`: Chuyển màn hình về Trang 1 (Wi-Fi Settings) khi chạm vào banner cảnh báo Wi-Fi.
+
+## 7. Sự kiện Trạng thái SPI (C5 gửi về RP2350)
+- `WIFI_DISCONNECTED`: Báo hiệu mất Wi-Fi để hiển thị banner cảnh báo.
+- `WIFI_CONNECTED:<SSID>`: Báo hiệu kết nối Wi-Fi thành công.
+- `WIFI_ERR_WRONG_PASS:<SSID>`: Báo hiệu lỗi mật khẩu Wi-Fi.
+- `WIFI_FORGOTTEN`: Báo hiệu đã xóa profile mạng thành công.
+- `IR_WEB_ERR_WIFI`: Báo lỗi không có Wi-Fi khi cố kích hoạt Web Server hồng ngoại.
+
+## 8. Chế độ RFID / NFC / RF (125kHz, 13.56MHz, Sub-1GHz)
+### Hiển thị thông tin (RP2350 ghi xuống HMI)
+- `0x0400`: Hiển thị UID thẻ đã quét (RFID EM4100, HID Prox, hoặc NFC).
+- `0x0098`: Vùng hiển thị Log trạng thái hệ thống và kết quả xử lý.
+
+### Lệnh nút bấm (HMI gửi lên RP2350)
+- `CMD_RFID_READ`: Kích hoạt chế độ đọc thẻ LF-RFID EM4100 (125kHz).
+- `CMD_RFID_WRITE:<UID>`: Ghi UID đã chọn xuống thẻ trắng T5577.
+- `CMD_RFID_EMULATE:<UID>`: Giả lập thẻ EM4100 bằng điều chế tải qua MOSFET.
+- `CMD_HID_READ`: Đọc thẻ HID Prox 125kHz (điều chế FSK).
+- `CMD_HID_EMULATE:<UID>`: Giả lập thẻ HID Prox.
+- `CMD_NFC_READ`: Quét UID thẻ NFC (13.56MHz ISO14443-A).
+- `CMD_NFC_EMULATE:<UID>`: PN532 giả lập thẻ NFC đích cho đầu đọc quét.
+- `CMD_RF_DECODE`: CC1101 quét và giải mã sóng Princeton (24-bit) / Came (12-bit).
+- `CMD_RFID_HIDE` / `CMD_RFID_KILL`: Chạy ẩn / Dừng hoạt động tác vụ RFID/NFC.
+
 

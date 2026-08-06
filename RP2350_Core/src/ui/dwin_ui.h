@@ -12,14 +12,17 @@
 #define DWIN_RX_PIN 1
 
 // Hàm khởi tạo UART cho DWIN
-void dwin_init() {
+static inline void dwin_init() {
     uart_init(DWIN_UART_ID, DWIN_BAUD_RATE);
     gpio_set_function(DWIN_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(DWIN_RX_PIN, GPIO_FUNC_UART);
 }
 
+#include "pico/mutex.h"
+extern mutex_t dwin_uart_mutex;
+
 // Hàm đẩy chuỗi Text xuống DWIN HMI
-void dwin_write_text(uint16_t address, const char* text) {
+static inline void dwin_write_text(uint16_t address, const char* text) {
     size_t len = strlen(text);
     if (len > 240) len = 240; 
 
@@ -33,11 +36,13 @@ void dwin_write_text(uint16_t address, const char* text) {
     
     memcpy(&packet[6], text, len);
     
+    mutex_enter_blocking(&dwin_uart_mutex);
     uart_write_blocking(DWIN_UART_ID, packet, 6 + len);
+    mutex_exit(&dwin_uart_mutex);
 }
 
 // Hàm chuyển trang hiển thị trên DWIN HMI (Địa chỉ thanh ghi hệ thống 0x0084)
-void dwin_switch_page(uint16_t page_id) {
+static inline void dwin_switch_page(uint16_t page_id) {
     uint8_t packet[8];
     packet[0] = 0x5A;
     packet[1] = 0xA5;
@@ -48,11 +53,13 @@ void dwin_switch_page(uint16_t page_id) {
     packet[6] = (page_id >> 8) & 0xFF;
     packet[7] = page_id & 0xFF;
     
+    mutex_enter_blocking(&dwin_uart_mutex);
     uart_write_blocking(DWIN_UART_ID, packet, 8);
+    mutex_exit(&dwin_uart_mutex);
 }
 
 // Hàm lắng nghe bàn phím ảo và nút bấm từ DWIN HMI
-void dwin_listen_keyboard_input(char* out_buffer) {
+static inline void dwin_listen_keyboard_input(char* out_buffer) {
     out_buffer[0] = '\0';
     if (!uart_is_readable(DWIN_UART_ID)) {
         return;
@@ -92,11 +99,12 @@ void dwin_listen_keyboard_input(char* out_buffer) {
         if (data_len > 0) {
             strncpy(out_buffer, (char*)data, data_len);
             out_buffer[data_len] = '\0';
+        }
     }
 }
 
 // Hàm đẩy giá trị 16-bit Integer xuống DWIN HMI
-void dwin_write_val(uint16_t address, uint16_t value) {
+static inline void dwin_write_val(uint16_t address, uint16_t value) {
     uint8_t packet[8];
     packet[0] = 0x5A;
     packet[1] = 0xA5;

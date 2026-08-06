@@ -13,7 +13,7 @@
 #define ESP32_PIN_IO9     21
 
 // Khởi tạo các chân GPIO điều khiển và cổng UART kết nối với ESP32
-void esp32_flasher_init() {
+static inline void esp32_flasher_init() {
     // Cấu hình UART1 kết nối với ESP32 UART0
     uart_init(ESP32_UART_PORT, ESP32_BAUD_RATE);
     gpio_set_function(ESP32_PIN_TX, GPIO_FUNC_UART);
@@ -31,7 +31,7 @@ void esp32_flasher_init() {
 }
 
 // Hàm giả lập tự động kích hoạt chế độ nạp (Strapping sequence)
-void esp32_enter_bootloader() {
+static inline void esp32_enter_bootloader() {
     gpio_put(ESP32_PIN_IO9, 0); // Kéo IO9 xuống LOW để đưa vào chế độ ROM Bootloader
     sleep_ms(10);
     
@@ -45,7 +45,7 @@ void esp32_enter_bootloader() {
 }
 
 // Vòng lặp chuyển tiếp dữ liệu tốc độ cao (Baudrate 921600 để nạp nhanh)
-void esp32_uart_bridge_task() {
+static inline void esp32_uart_bridge_task() {
     uart_set_baudrate(ESP32_UART_PORT, 921600);
     
     while (true) {

@@ -1,0 +1,48 @@
+.program ir_carrier
+.side_set 1
+
+; PIO program to generate 38kHz carrier modulated IR signals.
+; The state machine clock should be configured to run at exactly 4 * 38000 = 152000 Hz.
+; Each carrier wave period is 4 state machine cycles (2 cycles high, 2 cycles low).
+
+public entry:
+    pull block          side 0 ; Đợi nhận 32-bit word cấu hình từ FIFO
+    out x, 31           side 0 ; 31 bits cao là số chu kỳ 38kHz cần phát
+    out y, 1            side 0 ; 1 bit thấp nhất quyết định trạng thái: 1 = phát sóng mang (Mark), 0 = im lặng (Space)
+    jmp !y silent       side 0 ; Nếu bit trạng thái là 0, nhảy sang vòng lặp im lặng
+
+carrier_loop:
+    nop         side 1 [1] ; Kéo chân lên HIGH trong 2 chu kỳ SM
+    nop         side 0     ; Kéo chân xuống LOW trong 1 chu kỳ SM
+    jmp x-- carrier_loop side 0 ; Kéo xuống LOW thêm 1 chu kỳ SM, giảm x và lặp lại nếu x > 0
+    jmp entry   side 0     ; Quay lại đợi lệnh tiếp theo
+
+silent:
+    nop         side 0 [1] ; Giữ LOW trong 2 chu kỳ SM
+    nop         side 0     ; Giữ LOW trong 1 chu kỳ SM
+    jmp x-- silent     side 0 ; Giữ LOW thêm 1 chu kỳ SM, giảm x và lặp lại
+    jmp entry   side 0     ; Quay lại đợi lệnh tiếp theo
+
+% c-sdk {
+static inline void ir_carrier_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_sm_config c = ir_carrier_program_get_default_config(offset);
+    
+    // Cấu hình chân side-set (chân phát LED IR)
+    sm_config_set_sideset_pins(&c, pin);
+    
+    // Cấu hình GPIO cho chân này chịu sự điều khiển của PIO
+    pio_gpio_init(pio, pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+    
+    // Cấu hình clock divider để đạt tần số 152,000 Hz (4 * 38,000)
+    // Tần số hệ thống RP2350 đã được ép xung lên 300MHz (300,000,000 Hz)
+    float div = 300000000.0f / 152000.0f;
+    sm_config_set_clkdiv(&c, div);
+    
+    // Khởi tạo State Machine
+    pio_sm_init(pio, sm, offset, &c);
+    
+    // Bật State Machine
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}

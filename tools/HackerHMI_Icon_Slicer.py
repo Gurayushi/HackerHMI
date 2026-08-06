@@ -7,7 +7,7 @@ class IconSlicerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("HackerHMI - Sprite Sheet Icon Slicer")
-        self.root.geometry("1100x700")
+        self.root.geometry("1100x780")
         self.root.configure(bg="#121214")
 
         # Styles
@@ -35,90 +35,108 @@ class IconSlicerApp:
         self.pad_y_var = tk.IntVar(value=10)
         
         # Options
+        self.remove_watermark_var = tk.BooleanVar(value=True) # Auto Remove Gemini Watermark
         self.auto_center_var = tk.BooleanVar(value=True)
+        self.target_w_var = tk.IntVar(value=128)               # Target Export Width
+        self.target_h_var = tk.IntVar(value=128)               # Target Export Height
         self.transparent_var = tk.BooleanVar(value=True)
         self.prefix_var = tk.StringVar(value="icon")
 
         self.setup_ui()
 
     def setup_ui(self):
-        # Left Panel (Controls) - Width 320
+        # Left Panel (Controls) - Width 340
         control_frame = tk.Frame(self.root, bg="#1a1a1e", width=340, padx=15, pady=15)
         control_frame.pack(side=tk.LEFT, fill=tk.Y)
         control_frame.pack_propagate(False)
 
         # Title
         title_label = tk.Label(control_frame, text="NEON ICON SLICER", bg="#1a1a1e", fg="#a855f7", font=("Segoe UI", 14, "bold"))
-        title_label.pack(anchor=tk.W, pady=(0, 15))
+        title_label.pack(anchor=tk.W, pady=(0, 10))
 
         # 1. Load File
         btn_load = ttk.Button(control_frame, text="Load Sprite Sheet", command=self.load_image)
-        btn_load.pack(fill=tk.X, pady=(0, 15))
+        btn_load.pack(fill=tk.X, pady=(0, 10))
 
         # 2. Grid Parameters Section
-        grid_group = tk.LabelFrame(control_frame, text=" Grid Settings ", bg="#1a1a1e", fg="#06b6d4", font=("Segoe UI", 10, "bold"), padx=10, pady=10)
-        grid_group.pack(fill=tk.X, pady=(0, 15))
+        grid_group = tk.LabelFrame(control_frame, text=" Grid Settings ", bg="#1a1a1e", fg="#06b6d4", font=("Segoe UI", 10, "bold"), padx=10, pady=5)
+        grid_group.pack(fill=tk.X, pady=(0, 10))
 
         # Cols
-        tk.Label(grid_group, text="Columns:", bg="#1a1a1e", fg="#e2e8f0").grid(row=0, column=0, sticky=tk.W, pady=5)
+        tk.Label(grid_group, text="Columns:", bg="#1a1a1e", fg="#e2e8f0").grid(row=0, column=0, sticky=tk.W, pady=3)
         cols_spin = tk.Spinbox(grid_group, from_=1, to=20, textvariable=self.cols_var, width=5, bg="#27272a", fg="#ffffff", insertbackground="white", command=self.update_grid_view)
-        cols_spin.grid(row=0, column=1, sticky=tk.E, pady=5)
+        cols_spin.grid(row=0, column=1, sticky=tk.E, pady=3)
         self.cols_var.trace_add("write", lambda *args: self.update_grid_view())
 
         # Rows
-        tk.Label(grid_group, text="Rows:", bg="#1a1a1e", fg="#e2e8f0").grid(row=1, column=0, sticky=tk.W, pady=5)
+        tk.Label(grid_group, text="Rows:", bg="#1a1a1e", fg="#e2e8f0").grid(row=1, column=0, sticky=tk.W, pady=3)
         rows_spin = tk.Spinbox(grid_group, from_=1, to=20, textvariable=self.rows_var, width=5, bg="#27272a", fg="#ffffff", insertbackground="white", command=self.update_grid_view)
-        rows_spin.grid(row=1, column=1, sticky=tk.E, pady=5)
+        rows_spin.grid(row=1, column=1, sticky=tk.E, pady=3)
         self.rows_var.trace_add("write", lambda *args: self.update_grid_view())
 
         # Margin X
-        tk.Label(grid_group, text="Margin X (px):", bg="#1a1a1e", fg="#e2e8f0").grid(row=2, column=0, sticky=tk.W, pady=5)
+        tk.Label(grid_group, text="Margin X (px):", bg="#1a1a1e", fg="#e2e8f0").grid(row=2, column=0, sticky=tk.W, pady=3)
         margin_x_scale = tk.Scale(grid_group, from_=0, to=100, variable=self.margin_x_var, orient=tk.HORIZONTAL, bg="#1a1a1e", fg="#ffffff", troughcolor="#27272a", activebackground="#a855f7", showvalue=True, bd=0, highlightthickness=0, command=lambda x: self.update_grid_view())
-        margin_x_scale.grid(row=2, column=1, sticky=tk.EW, pady=5)
+        margin_x_scale.grid(row=2, column=1, sticky=tk.EW, pady=3)
 
         # Margin Y
-        tk.Label(grid_group, text="Margin Y (px):", bg="#1a1a1e", fg="#e2e8f0").grid(row=3, column=0, sticky=tk.W, pady=5)
+        tk.Label(grid_group, text="Margin Y (px):", bg="#1a1a1e", fg="#e2e8f0").grid(row=3, column=0, sticky=tk.W, pady=3)
         margin_y_scale = tk.Scale(grid_group, from_=0, to=100, variable=self.margin_y_var, orient=tk.HORIZONTAL, bg="#1a1a1e", fg="#ffffff", troughcolor="#27272a", activebackground="#a855f7", showvalue=True, bd=0, highlightthickness=0, command=lambda x: self.update_grid_view())
-        margin_y_scale.grid(row=3, column=1, sticky=tk.EW, pady=5)
+        margin_y_scale.grid(row=3, column=1, sticky=tk.EW, pady=3)
 
         # Padding X
-        tk.Label(grid_group, text="Padding X (px):", bg="#1a1a1e", fg="#e2e8f0").grid(row=4, column=0, sticky=tk.W, pady=5)
+        tk.Label(grid_group, text="Padding X (px):", bg="#1a1a1e", fg="#e2e8f0").grid(row=4, column=0, sticky=tk.W, pady=3)
         pad_x_scale = tk.Scale(grid_group, from_=0, to=100, variable=self.pad_x_var, orient=tk.HORIZONTAL, bg="#1a1a1e", fg="#ffffff", troughcolor="#27272a", activebackground="#a855f7", showvalue=True, bd=0, highlightthickness=0, command=lambda x: self.update_grid_view())
-        pad_x_scale.grid(row=4, column=1, sticky=tk.EW, pady=5)
+        pad_x_scale.grid(row=4, column=1, sticky=tk.EW, pady=3)
 
         # Padding Y
-        tk.Label(grid_group, text="Padding Y (px):", bg="#1a1a1e", fg="#e2e8f0").grid(row=5, column=0, sticky=tk.W, pady=5)
+        tk.Label(grid_group, text="Padding Y (px):", bg="#1a1a1e", fg="#e2e8f0").grid(row=5, column=0, sticky=tk.W, pady=3)
         pad_y_scale = tk.Scale(grid_group, from_=0, to=100, variable=self.pad_y_var, orient=tk.HORIZONTAL, bg="#1a1a1e", fg="#ffffff", troughcolor="#27272a", activebackground="#a855f7", showvalue=True, bd=0, highlightthickness=0, command=lambda x: self.update_grid_view())
-        pad_y_scale.grid(row=5, column=1, sticky=tk.EW, pady=5)
+        pad_y_scale.grid(row=5, column=1, sticky=tk.EW, pady=3)
         grid_group.columnconfigure(1, weight=1)
 
         # 3. Export Options Section
-        opt_group = tk.LabelFrame(control_frame, text=" Export Options ", bg="#1a1a1e", fg="#06b6d4", font=("Segoe UI", 10, "bold"), padx=10, pady=10)
-        opt_group.pack(fill=tk.X, pady=(0, 15))
+        opt_group = tk.LabelFrame(control_frame, text=" Export Options ", bg="#1a1a1e", fg="#06b6d4", font=("Segoe UI", 10, "bold"), padx=10, pady=5)
+        opt_group.pack(fill=tk.X, pady=(0, 10))
+
+        # Checkbox Auto-Remove Gemini Watermark
+        cb_watermark = ttk.Checkbutton(opt_group, text="Auto-Remove Gemini Watermark", variable=self.remove_watermark_var)
+        cb_watermark.pack(anchor=tk.W, pady=3)
 
         # Checkbox Auto-Center
-        cb_center = ttk.Checkbutton(opt_group, text="Auto-Center & Scale (128x128)", variable=self.auto_center_var)
-        cb_center.pack(anchor=tk.W, pady=5)
+        cb_center = ttk.Checkbutton(opt_group, text="Auto-Center & Scale Icon", variable=self.auto_center_var)
+        cb_center.pack(anchor=tk.W, pady=3)
+
+        # Custom Resolution W x H Input Frame
+        size_frame = tk.Frame(opt_group, bg="#1a1a1e")
+        size_frame.pack(fill=tk.X, pady=3)
+        
+        tk.Label(size_frame, text="Export Size (W x H px):", bg="#1a1a1e", fg="#e2e8f0").pack(side=tk.LEFT)
+        w_spin = tk.Spinbox(size_frame, from_=16, to=1024, textvariable=self.target_w_var, width=5, bg="#27272a", fg="#ffffff", insertbackground="white")
+        w_spin.pack(side=tk.LEFT, padx=(5, 2))
+        tk.Label(size_frame, text="x", bg="#1a1a1e", fg="#94a3b8").pack(side=tk.LEFT)
+        h_spin = tk.Spinbox(size_frame, from_=16, to=1024, textvariable=self.target_h_var, width=5, bg="#27272a", fg="#ffffff", insertbackground="white")
+        h_spin.pack(side=tk.LEFT, padx=(2, 0))
 
         # Checkbox Transparent Background
         cb_trans = ttk.Checkbutton(opt_group, text="Remove Black Background", variable=self.transparent_var)
-        cb_trans.pack(anchor=tk.W, pady=5)
+        cb_trans.pack(anchor=tk.W, pady=3)
 
         # Prefix Name
-        tk.Label(opt_group, text="File Name Prefix:", bg="#1a1a1e", fg="#e2e8f0").pack(anchor=tk.W, pady=(5, 2))
+        tk.Label(opt_group, text="File Name Prefix:", bg="#1a1a1e", fg="#e2e8f0").pack(anchor=tk.W, pady=(3, 1))
         prefix_entry = tk.Entry(opt_group, textvariable=self.prefix_var, bg="#27272a", fg="#ffffff", insertbackground="white", bd=1)
-        prefix_entry.pack(fill=tk.X, pady=5)
+        prefix_entry.pack(fill=tk.X, pady=3)
 
         # 4. Action buttons
         btn_out_dir = ttk.Button(control_frame, text="Select Output Folder", command=self.select_output_folder)
-        btn_out_dir.pack(fill=tk.X, pady=(0, 10))
+        btn_out_dir.pack(fill=tk.X, pady=(0, 5))
 
         self.btn_slice = ttk.Button(control_frame, text="SLICE & SAVE", style="TButton", command=self.slice_and_save)
-        self.btn_slice.pack(fill=tk.X, pady=(10, 0))
+        self.btn_slice.pack(fill=tk.X, pady=(5, 0))
 
         # Status footer in control
         self.status_lbl = tk.Label(control_frame, text="Ready. Load an image.", bg="#1a1a1e", fg="#94a3b8", justify=tk.LEFT, wraplength=300)
-        self.status_lbl.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
+        self.status_lbl.pack(side=tk.BOTTOM, fill=tk.X, pady=5)
 
         # Right Panel (Preview Canvas)
         preview_frame = tk.Frame(self.root, bg="#121214", padx=10, pady=10)
@@ -264,8 +282,23 @@ class IconSlicerApp:
         prefix = self.prefix_var.get().strip()
         if not prefix: prefix = "icon"
         
+        remove_watermark = self.remove_watermark_var.get()
         auto_center = self.auto_center_var.get()
         remove_bg = self.transparent_var.get()
+        target_w = max(16, self.target_w_var.get())
+        target_h = max(16, self.target_h_var.get())
+        
+        # Working copy of original image
+        work_img = self.original_img.copy()
+        
+        # Auto-remove Gemini Spark Watermark from bottom-right corner if enabled
+        if remove_watermark:
+            wm_w = max(60, int(img_w * 0.08))
+            wm_h = max(60, int(img_h * 0.08))
+            pix = work_img.load()
+            for y_wm in range(img_h - wm_h, img_h):
+                for x_wm in range(img_w - wm_w, img_w):
+                    pix[x_wm, y_wm] = (0, 0, 0)
         
         saved_count = 0
         
@@ -286,12 +319,11 @@ class IconSlicerApp:
                 if (x2 - x1) <= 0 or (y2 - y1) <= 0:
                     continue
                 
-                # Crop raw cell
-                cell_img = self.original_img.crop((x1, y1, x2, y2))
+                # Crop raw cell from working image
+                cell_img = work_img.crop((x1, y1, x2, y2))
                 
                 # Apply auto center & scale
                 if auto_center:
-                    # Find bounding box by checking pixels exceeding threshold brightness
                     cc_w, cc_h = cell_img.size
                     pixels = cell_img.load()
                     min_x, min_y = cc_w, cc_h
@@ -307,17 +339,24 @@ class IconSlicerApp:
                                 if x > max_x: max_x = x
                                 if y > max_y: max_y = y
                     
+                    # Ignore tiny artifacts / noise (< 15x15px)
+                    if (max_x - min_x) < 15 or (max_y - min_y) < 15:
+                        continue
+
                     if max_x >= min_x and max_y >= min_y:
                         icon_cropped = cell_img.crop((min_x, min_y, max_x + 1, max_y + 1))
                         ic_w, ic_h = icon_cropped.size
                         
-                        # Create final 128x128 canvas
-                        canvas = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
+                        # Create final target_w x target_h canvas
+                        canvas = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
                         
-                        # Scale to fit with padding (keep ratio)
-                        scale = min(100 / ic_w, 100 / ic_h, 1.0)
-                        new_w = int(ic_w * scale)
-                        new_h = int(ic_h * scale)
+                        # Scale keeping aspect ratio (leave 10% breathing padding)
+                        avail_tw = max(10, target_w - int(target_w * 0.15))
+                        avail_th = max(10, target_h - int(target_h * 0.15))
+                        
+                        scale = min(avail_tw / ic_w, avail_th / ic_h, 1.0)
+                        new_w = max(1, int(ic_w * scale))
+                        new_h = max(1, int(ic_h * scale))
                         
                         icon_resized = icon_cropped.resize((new_w, new_h), Image.Resampling.LANCZOS)
                         
@@ -344,16 +383,16 @@ class IconSlicerApp:
                             # Keep background but convert to RGBA
                             icon_final = icon_resized.convert("RGBA")
                             
-                        # Paste centered
-                        paste_x = (128 - new_w) // 2
-                        paste_y = (128 - new_h) // 2
+                        # Paste centered into target_w x target_h canvas
+                        paste_x = (target_w - new_w) // 2
+                        paste_y = (target_h - new_h) // 2
                         canvas.paste(icon_final, (paste_x, paste_y), icon_final)
                         final_out = canvas
                     else:
                         # Empty cell
                         continue
                 else:
-                    # Raw crop (no auto-centering), apply transparency directly to the whole grid cell if requested
+                    # Raw crop (no auto-centering)
                     if remove_bg:
                         rgba_img = Image.new("RGBA", cell_img.size)
                         src_pix = cell_img.load()
@@ -380,16 +419,15 @@ class IconSlicerApp:
                 final_out.save(os.path.join(self.out_dir, out_name), "PNG")
                 saved_count += 1
                 
-        messagebox.showinfo("Success", f"Successfully sliced and saved {saved_count} icons to:\n{self.out_dir}")
-        self.status_lbl.configure(text=f"Saved {saved_count} icons successfully!", fg="#22c55e")
+        messagebox.showinfo("Success", f"Successfully sliced and saved {saved_count} icons ({target_w}x{target_h}px) to:\n{self.out_dir}")
+        self.status_lbl.configure(text=f"Saved {saved_count} icons ({target_w}x{target_h}px) successfully!", fg="#22c55e")
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = IconSlicerApp(root)
     
-    # Simple event binding for canvas resizing
+    # Event binding for canvas resizing
     def on_resize(event):
-        # Only trigger redraw if the resize event target is the canvas
         if event.widget == app.canvas:
             app.update_canvas_display()
             
